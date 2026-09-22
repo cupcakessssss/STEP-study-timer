@@ -1315,6 +1315,43 @@
     body { padding-top: max(env(safe-area-inset-top, 0px), 4px); }
   }
 
+
+
+  .desktop-download-section {
+    display: none;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .desktop-download-section.visible { display: block; }
+  .desktop-download-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .desktop-download-copy {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .desktop-download-title {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .desktop-download-note {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: .58;
+  }
+  .desktop-download-btn {
+    min-height: 38px;
+    padding: 0 13px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
 </style>
 </head>
 <body>
@@ -1411,6 +1448,16 @@
           <button class="theme-swatch" type="button" data-theme="orange" aria-label="Orange theme" aria-pressed="false" style="--swatch:#f59e0b"></button>
           <button class="theme-swatch" type="button" data-theme="pink" aria-label="Pink theme" aria-pressed="false" style="--swatch:#ec4899"></button>
           <button class="theme-swatch" type="button" data-theme="mono" aria-label="Monochrome theme" aria-pressed="false" style="--swatch:#808080"></button>
+        </div>
+      </div>
+
+      <div class="desktop-download-section" id="desktopDownloadSection">
+        <div class="desktop-download-row">
+          <div class="desktop-download-copy">
+            <div class="desktop-download-title">Windows offline copy</div>
+            <div class="desktop-download-note">Download a standalone HTML copy you can open directly on Windows without internet. Your website version remains the best choice for synced updates.</div>
+          </div>
+          <button id="downloadWindowsBtn" class="desktop-download-btn" type="button">Download HTML</button>
         </div>
       </div>
     </div>
@@ -1543,6 +1590,8 @@
 (() => {
   const app = document.getElementById('app');
   const openWindowBtn = document.getElementById('openWindowBtn');
+  const desktopDownloadSection = document.getElementById('desktopDownloadSection');
+  const downloadWindowsBtn = document.getElementById('downloadWindowsBtn');
 
   const timerCard = document.getElementById('timerCard');
   const totalDisplay = document.getElementById('totalDisplay');
@@ -1728,6 +1777,25 @@
   }
 
   if (openWindowBtn) openWindowBtn.addEventListener('click', openCleanWindow);
+
+  const isWindows = /Windows/i.test(navigator.userAgent || '');
+  if (desktopDownloadSection) desktopDownloadSection.classList.toggle('visible', isWindows);
+
+  function downloadStandaloneHtml() {
+    const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'study_block_timer_windows.html';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  if (downloadWindowsBtn) downloadWindowsBtn.addEventListener('click', downloadStandaloneHtml);
 
   function parseMinutesSecondsInput(value) {
     const text = String(value ?? '').trim();
@@ -3862,6 +3930,16 @@
     window.visualViewport.addEventListener('resize', onViewportChange, { passive: true });
     window.visualViewport.addEventListener('scroll', onViewportChange, { passive: true });
     onViewportChange();
+  }
+
+  // Cache the app shell so the installed/Home Screen version keeps working offline.
+  // Service workers require http(s); local Windows HTML copies simply skip this.
+  if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {
+        // Offline caching is optional; the timer itself should still run if registration is blocked.
+      });
+    });
   }
 
   syncBreakFieldVisibility();
