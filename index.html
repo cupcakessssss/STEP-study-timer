@@ -1,0 +1,3878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111214">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Study Timer">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Study Block Timer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #4f8cff;
+    --page: #111214;
+    --surface: #181a1f;
+    --surface-2: #20232a;
+    --text: #f3f4f6;
+    --muted: #a9adb7;
+    --border: #343842;
+  }
+
+  /* Neutral themes */
+  body[data-theme="dark"] {
+    color-scheme: dark;
+    --accent: #4f8cff;
+    --page: #111214;
+    --surface: #181a1f;
+    --surface-2: #20232a;
+    --text: #f3f4f6;
+    --muted: #a9adb7;
+    --border: #343842;
+  }
+  body[data-theme="light"] {
+    color-scheme: light;
+    --accent: #2563eb;
+    --page: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --text: #17191d;
+    --muted: #6f7682;
+    --border: #d8dde5;
+  }
+
+  /* Full color themes: the whole interface gets a subtle tint, not just the accent. */
+  body[data-theme="blue"] {
+    color-scheme: dark;
+    --accent: #65a3ff;
+    --page: #0d1522;
+    --surface: #121e30;
+    --surface-2: #182842;
+    --text: #eef5ff;
+    --muted: #a9bfdc;
+    --border: #2b4568;
+  }
+  body[data-theme="green"] {
+    color-scheme: dark;
+    --accent: #56d17a;
+    --page: #0c1711;
+    --surface: #112119;
+    --surface-2: #173023;
+    --text: #effaf2;
+    --muted: #aacbb4;
+    --border: #2b5438;
+  }
+  body[data-theme="purple"] {
+    color-scheme: dark;
+    --accent: #a78bfa;
+    --page: #151022;
+    --surface: #1d1730;
+    --surface-2: #2a2144;
+    --text: #f6f1ff;
+    --muted: #c5b7df;
+    --border: #4c3d70;
+  }
+  body[data-theme="orange"] {
+    color-scheme: dark;
+    --accent: #f7aa3b;
+    --page: #1c1309;
+    --surface: #281a0d;
+    --surface-2: #372412;
+    --text: #fff6e8;
+    --muted: #d7b991;
+    --border: #654522;
+  }
+  body[data-theme="pink"] {
+    color-scheme: dark;
+    --accent: #f472b6;
+    --page: #1c0e17;
+    --surface: #291420;
+    --surface-2: #391b2d;
+    --text: #fff1f7;
+    --muted: #d9b0c3;
+    --border: #68405a;
+  }
+  body[data-theme="mono"] {
+    color-scheme: dark;
+    --accent: #e5e7eb;
+    --page: #0e0e0e;
+    --surface: #171717;
+    --surface-2: #232323;
+    --text: #f5f5f5;
+    --muted: #b4b4b4;
+    --border: #3d3d3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    display: grid;
+    place-items: start center;
+    min-height: 100vh;
+    background: var(--page);
+    color: var(--text);
+  }
+  .wrap {
+    width: min(720px, calc(100% - 32px));
+    padding: 28px 0 40px;
+  }
+  .setup {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: end;
+  }
+  label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    opacity: .75;
+  }
+  input {
+    width: 100%;
+    min-height: 46px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+    background: var(--page);
+    color: var(--text);
+    padding: 0 14px;
+    font: inherit;
+    font-size: 16px;
+  }
+  .card {
+    position: relative;
+    overflow: visible;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    text-align: center;
+    background: var(--surface);
+  }
+  .card.session-complete-flash {
+    animation: sessionCompleteFlash 700ms ease-out 1;
+  }
+  @keyframes sessionCompleteFlash {
+    0%, 100% {
+      background: var(--surface);
+      border-color: var(--border);
+    }
+    42% {
+      background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+      border-color: var(--accent);
+    }
+  }
+  .confetti-piece {
+    position: absolute;
+    left: 50%;
+    top: 48%;
+    width: 8px;
+    height: 12px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 5;
+    background: var(--confetti-color, var(--accent));
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg);
+    animation: confettiBurst 900ms cubic-bezier(.15,.7,.3,1) forwards;
+  }
+  @keyframes confettiBurst {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.7) rotate(0deg);
+    }
+    12% { opacity: 1; }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .confetti-piece { display: none; }
+  }
+  .label-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 0;
+    background: color-mix(in srgb, var(--text) 28%, transparent);
+  }
+  .status-dot.running {
+    background: var(--accent);
+  }
+  .status-dot.paused {
+    background: color-mix(in srgb, var(--text) 68%, transparent);
+  }
+  .status-dot.complete {
+    background: var(--accent);
+    box-shadow: inset 0 0 0 3px var(--surface);
+  }
+  .label {
+    opacity: .65;
+    font-size: 14px;
+  }
+  .time {
+    font-size: clamp(64px, 14vw, 110px);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .time-seconds {
+    display: inline-block;
+    width: 2ch;
+    text-align: left;
+    font-size: .42em;
+    line-height: 1;
+    vertical-align: super;
+    opacity: .42;
+    font-weight: 600;
+    letter-spacing: 0;
+    margin-left: .08em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .sub {
+    opacity: .65;
+    margin-top: 12px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .sub.break-overrun {
+    opacity: 1;
+    color: #e5484d;
+    font-weight: 650;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .timer-utility-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 14px;
+    margin-top: 10px;
+    position: relative;
+  }
+  .timer-utility-row .hint {
+    grid-column: 3;
+    margin-top: 8px;
+    text-align: right;
+    justify-self: end;
+    min-width: 0;
+  }
+  .break-action-row {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0;
+    position: relative;
+  }
+  .break-action-row .break-status-summary {
+    text-align: center;
+  }
+  @media (max-width: 560px) {
+    .timer-utility-row {
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 10px;
+    }
+    .break-action-row {
+      grid-column: 1;
+    }
+    .timer-utility-row .hint {
+      grid-column: 2;
+      font-size: 12px;
+      line-height: 1.35;
+      margin-top: 3px;
+      text-align: right;
+      justify-self: end;
+    }
+    .add-break-btn {
+      padding-left: 13px;
+      padding-right: 13px;
+    }
+  }
+  .add-break-btn {
+    min-height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: .78;
+  }
+  .add-break-btn:hover { opacity: 1; }
+  .add-break-btn[hidden] { display: none; }
+  .break-menu {
+    width: min(360px, 100%);
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 10px 28px color-mix(in srgb, black 18%, transparent);
+  }
+  .break-menu[hidden] { display: none; }
+  .break-menu-option {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .break-menu-option:hover {
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  }
+  .break-choice-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
+    gap: 7px;
+    align-items: stretch;
+    border-radius: 11px;
+    padding: 2px;
+    transition: background .14s ease, box-shadow .14s ease;
+  }
+  .break-choice-row.selected {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  .break-choice-row.selected .break-menu-option {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .break-choice-time {
+    width: 82px;
+    min-height: 38px;
+    align-self: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 0 8px;
+    font: inherit;
+    font-size: 12px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .break-choice-help {
+    padding: 2px 10px 7px;
+    font-size: 10.5px;
+    opacity: .48;
+  }
+  .break-settings-section {
+    display: grid;
+    gap: 10px;
+  }
+  .break-settings-bottom {
+    margin-top: 10px;
+    padding-top: 11px;
+    border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .break-settings-bottom .break-settings-grid { opacity: .82; }
+  .break-default-top {
+    padding: 3px 10px 7px;
+  }
+  .break-settings-title {
+    font-size: 12px;
+    font-weight: 700;
+    opacity: .72;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .break-settings-grid {
+    display: grid;
+    gap: 9px;
+  }
+  .break-settings-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    opacity: .86;
+  }
+  .break-settings-grid input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    min-height: auto;
+  }
+  .break-default-row {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    gap: 6px;
+  }
+  .break-default-row label {
+    display: grid;
+    gap: 5px;
+    font-size: 12px;
+    opacity: .74;
+  }
+  .break-settings-note, .break-settings-error {
+    font-size: 11px;
+    line-height: 1.35;
+    opacity: .58;
+  }
+  .break-settings-error {
+    color: #d94a4a;
+    opacity: .95;
+    min-height: 15px;
+  }
+  .break-status-summary {
+    font-size: 11px;
+    opacity: .55;
+    margin-top: 5px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .break-menu-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: .58;
+  }
+  .break-duration-row {
+    display: grid;
+    grid-template-columns: 1fr 112px;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px 10px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .break-duration-row label {
+    font-size: 12px;
+    opacity: .78;
+  }
+  .break-duration-row input {
+    min-height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 0 9px;
+    font: inherit;
+    font-size: 12px;
+  }
+  .break-duration-help {
+    grid-column: 1 / -1;
+    margin-top: -4px;
+    font-size: 10.5px;
+    opacity: .5;
+  }
+  .optional-note { opacity: .55; font-weight: 500; }
+  .one-time-break-duration { margin-top: 2px; }
+  .recurring-break-card {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+  }
+  .recurring-break-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .recurring-break-name { font-size: 13px; font-weight: 700; }
+  .recurring-break-caption { margin-top: 2px; font-size: 10.5px; opacity: .52; }
+  .recurring-status-btn {
+    min-width: 54px;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .recurring-status-btn[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  }
+  .recurring-time-label {
+    margin-top: 11px;
+    margin-bottom: 5px;
+    font-size: 10.5px;
+    font-weight: 650;
+    opacity: .56;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .break-time-stepper {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    gap: 7px;
+    align-items: center;
+  }
+  .break-time-step-btn {
+    min-height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    font-size: 19px;
+    font-weight: 500;
+    opacity: .78;
+  }
+  .recurring-break-time-input {
+    min-height: 42px !important;
+    width: 100%;
+    border: 0 !important;
+    background: transparent !important;
+    text-align: center;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .01em;
+    padding: 0 4px !important;
+  }
+  .break-time-unit-wrap {
+    position: relative;
+    min-width: 0;
+  }
+  .break-time-unit-wrap input {
+    width: 100%;
+    padding-right: 31px !important;
+    box-sizing: border-box;
+  }
+  .break-time-unit {
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10.5px;
+    font-weight: 650;
+    opacity: .48;
+    pointer-events: none;
+    user-select: none;
+  }
+  .break-time-stepper .break-time-unit-wrap {
+    width: 100%;
+  }
+  .break-time-stepper .break-time-unit {
+    right: 12px;
+    font-size: 11px;
+  }
+  .break-time-stepper .recurring-break-time-input {
+    padding-left: 31px !important;
+    padding-right: 31px !important;
+  }
+  .centered-note { text-align: center; margin-top: 4px; }
+  .recurring-preferences { margin-top: 1px; }
+  .break-schedule-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    margin-top: 2px;
+    border-top: 1px solid var(--border);
+  }
+  .break-schedule-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    opacity: .78;
+  }
+  .break-schedule-row select,
+  .break-schedule-row input {
+    min-height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 0 8px;
+    font: inherit;
+  }
+  .break-schedule-row input {
+    width: 86px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .break-schedule-note {
+    grid-column: 1 / -1;
+    margin-top: -2px;
+    font-size: 10.5px;
+    opacity: .5;
+  }
+  .break-schedule-row button {
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+  .break-scheduled-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 7px;
+    font-size: 11px;
+    opacity: .72;
+  }
+  .break-scheduled-chip[hidden] { display: none; }
+  .break-scheduled-chip button {
+    min-height: 24px;
+    width: 24px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+  }
+  button {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+  button:disabled { opacity: .45; cursor: default; }
+  .primary {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+  }
+  .blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .block {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 0;
+    text-align: center;
+    min-width: 0;
+    background: var(--surface);
+  }
+  .current { outline: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .done { opacity: .5; }
+  .hint {
+    text-align: center;
+    opacity: .55;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+
+  .change-preview {
+    display: none;
+    margin: -4px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .change-preview.visible { display: block; }
+  .change-preview-row + .change-preview-row { margin-top: 4px; }
+  .change-preview strong { color: var(--text); font-weight: 650; }
+  .change-preview .invalid { color: #d92d20; }
+
+  .error {
+    color: #b42318;
+    font-size: 13px;
+    margin: 4px 0 12px;
+    min-height: 18px;
+  }
+
+  .config-shell {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: color-mix(in srgb, CanvasText 3%, Canvas);
+    overflow: hidden;
+  }
+  .config-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+  }
+  .config-toggle::-webkit-details-marker { display: none; }
+  .config-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .config-subtitle {
+    opacity: .6;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .config-chevron {
+    opacity: .7;
+    font-size: 14px;
+    transition: transform .18s ease;
+  }
+  .config-shell[open] .config-chevron {
+    transform: rotate(180deg);
+  }
+  .config-content {
+    padding: 0 18px 18px;
+  }
+  .window-launch {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .window-launch .error {
+    margin: 0 0 0 auto;
+    min-height: 0;
+    flex: 1 1 260px;
+    text-align: right;
+    line-height: 1.35;
+  }
+  .window-launch .error:empty { display: none; }
+  @media (max-width: 620px) {
+    .window-launch .error {
+      flex-basis: 100%;
+      margin-left: 0;
+      text-align: left;
+    }
+  }
+  .options-row {
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    margin:0 0 14px;
+  }
+  .primary-options-row {
+    align-items:center;
+    justify-content:flex-start;
+    gap:26px;
+  }
+  .option-check {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+    opacity:.8;
+  }
+  .option-check input {
+    width:18px;
+    height:18px;
+    min-height:auto;
+  }
+  @media (max-width: 680px) {
+    .primary-options-row {
+      justify-content:flex-start;
+    }
+  }
+  .seconds-options {
+    display: none;
+    margin: -4px 0 14px 28px;
+    padding-left: 14px;
+    border-left: 1px solid var(--border);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .seconds-options.visible {
+    display: flex;
+  }
+  .seconds-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    opacity: .62;
+  }
+  .seconds-options input {
+    width: 16px;
+    height: 16px;
+    min-height: auto;
+  }
+
+  .theme-section {
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .theme-label {
+    font-size: 12px;
+    opacity: .62;
+    margin-bottom: 10px;
+  }
+  .theme-options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .theme-swatch {
+    width: 28px;
+    height: 28px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--swatch);
+    outline: none;
+    box-shadow: none;
+  }
+  .theme-swatch:hover {
+    background: var(--swatch);
+    transform: scale(1.06);
+  }
+  .theme-swatch[aria-pressed="true"] {
+    box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--swatch);
+  }
+
+
+  .current-session-shell {
+    margin-top: 18px;
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+    border-radius: 18px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .current-session-shell[hidden] { display: none; }
+  .current-session-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .current-session-toggle::-webkit-details-marker { display: none; }
+  .current-session-shell[open] .config-chevron { transform: rotate(180deg); }
+  .current-session-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 260px);
+    gap: 12px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .current-session-title {
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .current-session-meta {
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: .6;
+    font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+  .current-session-body { padding: 0 14px 14px; }
+  .current-session-badge {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .session-block-row.current-live {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    border-radius: 8px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .logs-shell {
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .logs-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+  }
+  .logs-toggle::-webkit-details-marker { display: none; }
+  .logs-shell[open] .config-chevron { transform: rotate(180deg); }
+  .logs-count {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: .55;
+  }
+  .logs-content {
+    padding: 0 14px 14px;
+  }
+  .logs-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0 4px 8px;
+  }
+  .import-status {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    opacity: .62;
+  }
+  .export-btn {
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: .72;
+  }
+  .export-btn:hover { opacity: 1; }
+  .logs-empty {
+    padding: 14px 4px 6px;
+    text-align: center;
+    font-size: 13px;
+    opacity: .55;
+  }
+  .logs-storage-note {
+    display: none;
+    margin: 0 4px 12px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 12px;
+    opacity: .68;
+    background: var(--surface-2);
+  }
+  .logs-storage-note.visible { display: block; }
+  .session-log {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-2);
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .session-log summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .session-log summary::-webkit-details-marker { display: none; }
+  .session-log-title {
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .session-log-summary-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 260px);
+    gap: 12px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .session-inline-comment {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 6px 9px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .session-inline-comment::placeholder { opacity: .5; }
+  .session-log-meta {
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: .58;
+    font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+  .session-log-arrow {
+    opacity: .55;
+    font-size: 12px;
+    transition: transform .18s ease;
+  }
+  .session-log[open] .session-log-arrow { transform: rotate(180deg); }
+  .session-log-body {
+    padding: 0 14px 14px;
+  }
+  .session-blocks {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 12px;
+  }
+  .session-block-row {
+    display: grid;
+    grid-template-columns: auto minmax(120px, 1fr) auto minmax(150px, 240px);
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  .session-block-row:last-child { border-bottom: 0; }
+  .session-block-name { font-weight: 650; }
+  .session-block-time {
+    opacity: .66;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .session-block-duration { opacity: .62; white-space: nowrap; }
+  .session-block-comment {
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 5px 8px;
+    font: inherit;
+    font-size: 11px;
+  }
+  .session-block-comment::placeholder { opacity: .5; }
+  .session-comment-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    opacity: .58;
+  }
+  .session-comment {
+    width: 100%;
+    min-height: 68px;
+    resize: vertical;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 10px;
+    font: inherit;
+    font-size: 13px;
+  }
+  .session-edit-panel {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 2px 0 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .session-log.editing .session-edit-panel { display: grid; }
+  .session-edit-field {
+    display: grid;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .session-edit-input, .block-edit-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 5px 8px;
+    font: inherit;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .session-block-edit {
+    display: none;
+    grid-column: 1 / -1;
+    grid-template-columns: 90px minmax(170px, 1fr) minmax(170px, 1fr);
+    gap: 8px;
+    align-items: end;
+    padding-top: 2px;
+  }
+  .session-log.editing .session-block-edit { display: grid; }
+  .session-log.editing .session-block-name,
+  .session-log.editing .session-block-time {
+    opacity: .35;
+  }
+  .session-edit-note {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .edit-session-btn, .cancel-edit-btn {
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .edit-session-btn.saving {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .cancel-edit-btn { display: none; }
+  .session-log.editing .cancel-edit-btn { display: inline-block; }
+  .session-log.editing .export-btn,
+  .session-log.editing .delete-session-btn { opacity: .35; pointer-events: none; }
+  .session-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .delete-session-btn {
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: .62;
+  }
+  .delete-session-btn:hover { opacity: .9; }
+  .delete-session-btn.confirming {
+    opacity: 1;
+    border-color: #b42318;
+    color: #b42318;
+  }
+  .timer-mode-section {
+    margin: 0 0 16px;
+  }
+  .timer-mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .timer-mode-btn {
+    min-height: 46px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .timer-mode-btn:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .timer-mode-btn.active {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 68%, transparent);
+  }
+  .timer-mode-help {
+    margin-top: 7px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .setup label.mode-disabled {
+    opacity: .38;
+  }
+  @media (max-width: 560px) {
+    .setup { grid-template-columns: 1fr 1fr; }
+    .setup button { grid-column: 1 / -1; }
+    .controls { grid-template-columns: 1fr 1fr; }
+    .session-log-summary-main, .current-session-main { grid-template-columns: 1fr; gap: 8px; }
+    .session-block-row {
+      grid-template-columns: auto 1fr auto;
+    }
+    .session-edit-panel { grid-template-columns: 1fr; }
+    .session-edit-note { grid-column: 1; }
+    .session-block-edit {
+      grid-template-columns: 1fr;
+    }
+    .session-block-comment {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .countup-totals {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .countup-totals[hidden] { display: none; }
+
+  .countup-totals-sep { opacity: .55; }
+
+
+  /* Cross-platform/mobile layer: keeps desktop behavior intact while making the
+     same single-file app comfortable in Safari and as an iOS Home Screen app. */
+  html {
+    min-height: 100%;
+    background: var(--page);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, input, select, textarea, summary {
+    touch-action: manipulation;
+  }
+
+  input, select, textarea {
+    font-size: max(16px, 1em); /* prevents Safari zooming the page when focusing fields */
+  }
+
+  .ios-device button,
+  .ios-device summary,
+  .ios-device .theme-swatch {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .ios-device .window-launch { display: none; }
+
+  @media (hover: none) and (pointer: coarse) {
+    button { min-height: 46px; }
+    .export-btn, .edit-session-btn, .cancel-edit-btn, .delete-session-btn { min-height: 40px; }
+    .theme-swatch { width: 34px; height: 34px; min-height: 34px; }
+    .wrap { width: min(720px, calc(100% - 20px)); padding-top: 16px; }
+  }
+
+  @media (max-width: 560px) {
+    .wrap { width: calc(100% - 20px); padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+    .card { padding: 22px 14px; border-radius: 16px; }
+    .time { font-size: clamp(58px, 22vw, 94px); }
+    .controls { gap: 8px; }
+    .controls button { padding-left: 8px; padding-right: 8px; }
+    .config-content { padding-left: 12px; padding-right: 12px; }
+    .logs-content { padding-left: 10px; padding-right: 10px; }
+    .logs-toolbar { flex-wrap: wrap; justify-content: flex-start; }
+    .logs-toolbar .import-status { flex-basis: 100%; order: 5; }
+    .session-actions { justify-content: stretch; }
+    .session-actions button { flex: 1 1 auto; }
+    .break-menu { width: min(100%, 420px); }
+    .break-schedule-row { grid-template-columns: 1fr auto; }
+    .break-schedule-row button { grid-column: 1 / -1; }
+    .break-schedule-note { grid-column: 1 / -1; }
+  }
+
+  @media (display-mode: standalone) {
+    body { padding-top: max(env(safe-area-inset-top, 0px), 4px); }
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap" id="app" tabindex="0">
+
+  <details class="config-shell" id="configPanel" open>
+    <summary class="config-toggle">
+      <span class="config-title">
+        <span>Configuration</span>
+        <span class="config-subtitle">show / hide settings</span>
+      </span>
+      <span class="config-chevron" aria-hidden="true">▾</span>
+    </summary>
+
+    <div class="config-content">
+      <div class="window-launch">
+        <button id="openWindowBtn" type="button">Open in clean window</button>
+        <div class="error" id="errorMsg" aria-live="polite"></div>
+      </div>
+
+      <div class="timer-mode-section">
+        <div class="timer-mode-switch" id="timerModeSwitch" role="group" aria-label="Timer mode">
+          <button class="timer-mode-btn active" id="countdownModeBtn" type="button" data-mode="countdown" aria-pressed="true">Countdown</button>
+          <button class="timer-mode-btn" id="countupModeBtn" type="button" data-mode="countup" aria-pressed="false">Count up</button>
+        </div>
+        <div class="timer-mode-help" id="timerModeHelp">Countdown blocks end automatically at their set time.</div>
+      </div>
+
+      <div class="setup">
+        <label>
+          Number of blocks
+          <input id="blocksInput" type="number" min="1" max="50" step="1" value="5">
+        </label>
+
+        <label id="blockMinutesField">
+          Minutes per block
+          <input id="minutesInput" type="text" inputmode="numeric" value="20" placeholder="20 or 20:30" aria-label="Minutes per block">
+        </label>
+
+        <button id="applyBtn" class="primary">Apply</button>
+      </div>
+
+      <div class="change-preview" id="changePreview" aria-live="polite"></div>
+
+      <div class="options-row primary-options-row">
+        <label class="option-check">
+          <input id="autoStartToggle" type="checkbox" checked>
+          Auto-start next block
+        </label>
+        <label class="option-check">
+          <input id="showTotalTimeToggle" type="checkbox" checked>
+          Total time
+        </label>
+        <label class="option-check">
+          <input id="showBreakTimeToggle" type="checkbox" checked>
+          Break time
+        </label>
+      </div>
+
+      <div class="options-row">
+        <label style="display:flex;align-items:center;gap:10px;font-size:14px;opacity:.8;">
+          <input id="secondsToggle" type="checkbox" checked style="width:18px;height:18px;min-height:auto;">
+          Show seconds
+        </label>
+      </div>
+
+      <div class="seconds-options" id="secondsOptions">
+        <label>
+          <input id="secondsTotalToggle" type="checkbox" checked>
+          Main timer
+        </label>
+        <label>
+          <input id="secondsBlockToggle" type="checkbox" checked>
+          Block timer
+        </label>
+        <label>
+          <input id="secondsTitleToggle" type="checkbox" checked>
+          Browser bar
+        </label>
+        <label>
+          <input id="secondsCurrentSessionToggle" type="checkbox">
+          Current session log
+        </label>
+      </div>
+
+      <div class="theme-section">
+        <div class="theme-label">Color theme</div>
+        <div class="theme-options" id="themeOptions" aria-label="Color theme">
+          <button class="theme-swatch" type="button" data-theme="dark" aria-label="Dark mode theme" aria-pressed="true" style="--swatch:#111111"></button>
+          <button class="theme-swatch" type="button" data-theme="light" aria-label="Light mode theme" aria-pressed="false" style="--swatch:#ffffff"></button>
+          <button class="theme-swatch" type="button" data-theme="blue" aria-label="Blue theme" aria-pressed="false" style="--swatch:#4f8cff"></button>
+          <button class="theme-swatch" type="button" data-theme="green" aria-label="Green theme" aria-pressed="false" style="--swatch:#34a853"></button>
+          <button class="theme-swatch" type="button" data-theme="purple" aria-label="Purple theme" aria-pressed="false" style="--swatch:#8b5cf6"></button>
+          <button class="theme-swatch" type="button" data-theme="orange" aria-label="Orange theme" aria-pressed="false" style="--swatch:#f59e0b"></button>
+          <button class="theme-swatch" type="button" data-theme="pink" aria-label="Pink theme" aria-pressed="false" style="--swatch:#ec4899"></button>
+          <button class="theme-swatch" type="button" data-theme="mono" aria-label="Monochrome theme" aria-pressed="false" style="--swatch:#808080"></button>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="card" id="timerCard">
+    <div class="label-row">
+      <div class="status-dot" id="statusDot" aria-hidden="true"></div>
+      <div class="label" id="blockLabel">Block 1 of 5</div>
+    </div>
+    <div class="time" id="totalDisplay">1:40</div>
+    <div class="sub" id="currentBlockDisplay">20 min current block</div>
+    <div class="countup-totals" id="countupTotals" hidden>
+      <span id="countupTotalTime">Total time 0:00</span>
+      <span class="countup-totals-sep">·</span>
+      <span id="countupBreakTime">Break time 0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="startPauseBtn">Start</button>
+    <button id="nextBtn">Done / Next</button>
+    <button id="backBtn">Back</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <div class="blocks" id="blocks"></div>
+
+  <div class="timer-utility-row">
+    <div class="break-action-row">
+      <button id="addBreakBtn" class="add-break-btn" type="button" aria-expanded="false">+ Break</button>
+      <div id="breakStatusSummary" class="break-status-summary"></div>
+      <div id="breakMenu" class="break-menu" hidden>
+      <input id="breakInput" type="hidden" value="5">
+      <div id="breakSettingsError" class="break-settings-error" aria-live="polite"></div>
+      <div class="break-choice-row" id="breakNowRow">
+        <button id="breakNowBtn" class="break-menu-option" type="button">
+          Break now
+          <span class="break-menu-sub">Pause this block and resume it afterward.</span>
+        </button>
+        <span class="break-time-unit-wrap"><input id="breakNowDurationInput" class="break-choice-time" type="text" inputmode="numeric" placeholder="time" aria-label="Optional break length for break now, in minutes"><span class="break-time-unit">min</span></span>
+      </div>
+      <div class="break-choice-row" id="breakAfterCurrentRow">
+        <button id="breakAfterCurrentBtn" class="break-menu-option" type="button">
+          Break after this block
+          <span class="break-menu-sub">Finish this block, then take one break.</span>
+        </button>
+        <span class="break-time-unit-wrap"><input id="breakAfterCurrentDurationInput" class="break-choice-time" type="text" inputmode="numeric" placeholder="time" aria-label="Optional break length after this block, in minutes"><span class="break-time-unit">min</span></span>
+      </div>
+      <div class="break-choice-help">Optional time: use minutes or minutes:seconds. Leave blank for an untimed break.</div>
+      <div class="break-schedule-row">
+        <label for="breakAfterBlockSelect">Break after
+          <select id="breakAfterBlockSelect" aria-label="Choose block for one-time break"></select>
+        </label>
+        <span class="break-time-unit-wrap"><input id="breakAfterBlockDurationInput" type="text" inputmode="numeric" placeholder="time" aria-label="Optional custom break length after selected block, in minutes"><span class="break-time-unit">min</span></span>
+        <button id="setBreakAfterBlockBtn" type="button">Set</button>
+        <div class="break-schedule-note">Schedule a one-time break after any block. Replaces the recurring break for that block; leave the time blank for an untimed break.</div>
+      </div>
+      <div class="break-settings-section break-settings-bottom">
+        <div class="break-settings-title">Recurring breaks</div>
+        <div class="recurring-break-card">
+          <div class="recurring-break-header">
+            <div>
+              <div class="recurring-break-name">After every block</div>
+              <div class="recurring-break-caption">Automatically insert a break after each block. Leave the time blank for untimed breaks.</div>
+            </div>
+            <button id="setRecurringBreakBtn" class="recurring-status-btn" type="button" aria-pressed="false">Off</button>
+          </div>
+          <div class="recurring-time-label">Break length</div>
+          <div class="break-time-stepper">
+            <button id="decreaseRecurringBreakBtn" class="break-time-step-btn" type="button" aria-label="Decrease recurring break by one minute">−</button>
+            <span class="break-time-unit-wrap"><input id="recurringBreakInput" class="recurring-break-time-input" type="text" inputmode="numeric" placeholder="5:00" aria-label="Recurring break length, in minutes"><span class="break-time-unit">min</span></span>
+            <button id="increaseRecurringBreakBtn" class="break-time-step-btn" type="button" aria-label="Increase recurring break by one minute">+</button>
+          </div>
+          <div class="break-settings-note centered-note">Type minutes or minutes:seconds, or leave blank for an open-ended break that counts up.</div>
+        </div>
+        <div class="break-settings-grid recurring-preferences">
+          <label>
+            <input id="autoStartBreakToggle" type="checkbox">
+            Auto-start next block after break
+          </label>
+        </div>
+      </div>
+    </div>
+    <div id="breakScheduledChip" class="break-scheduled-chip" hidden>
+      <span id="breakScheduledText"></span>
+      <button id="cancelScheduledBreakBtn" type="button" aria-label="Cancel scheduled break">×</button>
+      </div>
+    </div>
+    <div class="hint">Space = Start/Pause · Enter = Done/Next</div>
+  </div>
+
+  <details class="current-session-shell" id="currentSessionPanel" open hidden>
+    <summary class="current-session-toggle">
+      <div class="current-session-main">
+        <div class="current-session-title" id="currentSessionTitle"></div>
+        <input id="currentSessionInlineComment" class="session-inline-comment" type="text" placeholder="Session comment…" aria-label="Current session comment">
+      </div>
+      <span class="config-chevron" aria-hidden="true">▾</span>
+    </summary>
+    <div class="current-session-body">
+      <div class="session-blocks" id="currentSessionBlocks"></div>
+      <label class="session-comment-label" for="currentSessionComment">Comment</label>
+      <textarea class="session-comment" id="currentSessionComment" placeholder="Add a note while you work…"></textarea>
+    </div>
+  </details>
+
+  <details class="logs-shell" id="logsPanel">
+    <summary class="logs-toggle">
+      <span>Session log <span class="logs-count" id="logsCount"></span></span>
+      <span class="config-chevron" aria-hidden="true">▾</span>
+    </summary>
+    <div class="logs-content">
+      <div class="logs-storage-note" id="logsStorageNote">OneDrive preview can keep logs for this open tab, but cannot save them between visits.</div>
+      <div class="logs-toolbar">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;opacity:.72;margin-right:auto;white-space:nowrap;">
+          <input id="showCurrentSessionToggle" type="checkbox" checked style="width:16px;height:16px;min-height:auto;">
+          Show current session
+        </label>
+        <span class="import-status" id="importStatus" aria-live="polite"></span>
+        <button id="importSessionsBtn" class="export-btn" type="button">Import</button>
+        <button id="exportAllSessionsBtn" class="export-btn" type="button">Export all</button>
+        <input id="importSessionsInput" type="file" accept=".csv,text/csv" hidden>
+      </div>
+      <div id="sessionLogs"></div>
+    </div>
+  </details>
+</div>
+
+<script>
+(() => {
+  const app = document.getElementById('app');
+  const openWindowBtn = document.getElementById('openWindowBtn');
+
+  const timerCard = document.getElementById('timerCard');
+  const totalDisplay = document.getElementById('totalDisplay');
+  const statusDot = document.getElementById('statusDot');
+  const blockLabel = document.getElementById('blockLabel');
+  const currentBlockDisplay = document.getElementById('currentBlockDisplay');
+  const countupTotals = document.getElementById('countupTotals');
+  const countupTotalTime = document.getElementById('countupTotalTime');
+  const countupBreakTime = document.getElementById('countupBreakTime');
+  const startPauseBtn = document.getElementById('startPauseBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const backBtn = document.getElementById('backBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const addBreakBtn = document.getElementById('addBreakBtn');
+  const breakMenu = document.getElementById('breakMenu');
+  const breakNowDurationInput = document.getElementById('breakNowDurationInput');
+  const breakAfterCurrentDurationInput = document.getElementById('breakAfterCurrentDurationInput');
+  const breakNowRow = document.getElementById('breakNowRow');
+  const breakAfterCurrentRow = document.getElementById('breakAfterCurrentRow');
+  const breakAfterBlockDurationInput = document.getElementById('breakAfterBlockDurationInput');
+  const breakNowBtn = document.getElementById('breakNowBtn');
+  const breakAfterCurrentBtn = document.getElementById('breakAfterCurrentBtn');
+  const breakAfterBlockSelect = document.getElementById('breakAfterBlockSelect');
+  const setBreakAfterBlockBtn = document.getElementById('setBreakAfterBlockBtn');
+  const breakScheduledChip = document.getElementById('breakScheduledChip');
+  const breakScheduledText = document.getElementById('breakScheduledText');
+  const breakStatusSummary = document.getElementById('breakStatusSummary');
+  const breakSettingsError = document.getElementById('breakSettingsError');
+  const cancelScheduledBreakBtn = document.getElementById('cancelScheduledBreakBtn');
+
+  const timerModeSwitch = document.getElementById('timerModeSwitch');
+  const countdownModeBtn = document.getElementById('countdownModeBtn');
+  const countupModeBtn = document.getElementById('countupModeBtn');
+  const timerModeHelp = document.getElementById('timerModeHelp');
+  const blockMinutesField = document.getElementById('blockMinutesField');
+  const blocksInput = document.getElementById('blocksInput');
+  const minutesInput = document.getElementById('minutesInput');
+  const breakInput = document.getElementById('breakInput');
+  const recurringBreakInput = document.getElementById('recurringBreakInput');
+  const setRecurringBreakBtn = document.getElementById('setRecurringBreakBtn');
+  const decreaseRecurringBreakBtn = document.getElementById('decreaseRecurringBreakBtn');
+  const increaseRecurringBreakBtn = document.getElementById('increaseRecurringBreakBtn');
+  const autoStartToggle = document.getElementById('autoStartToggle');
+  const showTotalTimeToggle = document.getElementById('showTotalTimeToggle');
+  const showBreakTimeToggle = document.getElementById('showBreakTimeToggle');
+  const autoStartBreakToggle = document.getElementById('autoStartBreakToggle');
+  const showCurrentSessionToggle = document.getElementById('showCurrentSessionToggle');
+  const breakField = document.getElementById('breakField');
+  const applyBtn = document.getElementById('applyBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const changePreview = document.getElementById('changePreview');
+  const secondsToggle = document.getElementById('secondsToggle');
+  const secondsOptions = document.getElementById('secondsOptions');
+  const secondsTitleToggle = document.getElementById('secondsTitleToggle');
+  const secondsTotalToggle = document.getElementById('secondsTotalToggle');
+  const secondsBlockToggle = document.getElementById('secondsBlockToggle');
+  const secondsCurrentSessionToggle = document.getElementById('secondsCurrentSessionToggle');
+  const blocksEl = document.getElementById('blocks');
+  const themeOptions = document.getElementById('themeOptions');
+  const themeSwatches = [...document.querySelectorAll('.theme-swatch')];
+
+  const currentSessionPanel = document.getElementById('currentSessionPanel');
+  const currentSessionTitle = document.getElementById('currentSessionTitle');
+  const currentSessionInlineComment = document.getElementById('currentSessionInlineComment');
+  const currentSessionBlocks = document.getElementById('currentSessionBlocks');
+  const currentSessionComment = document.getElementById('currentSessionComment');
+  const logsPanel = document.getElementById('logsPanel');
+  const logsCount = document.getElementById('logsCount');
+  const logsStorageNote = document.getElementById('logsStorageNote');
+  const sessionLogsEl = document.getElementById('sessionLogs');
+  const importStatus = document.getElementById('importStatus');
+  const importSessionsBtn = document.getElementById('importSessionsBtn');
+  const importSessionsInput = document.getElementById('importSessionsInput');
+  const exportAllSessionsBtn = document.getElementById('exportAllSessionsBtn');
+
+  const params = new URLSearchParams(window.location.search);
+  const isAppWindow = params.get('app') === '1';
+  if (isAppWindow) document.body.classList.add('app-window');
+
+  const configPanel = document.getElementById('configPanel');
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  document.body.classList.toggle('ios-device', isIOS);
+  document.body.classList.toggle('standalone-app', isStandalone);
+
+  // Match the browser/Home Screen chrome to the active theme where supported.
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+  // OneDrive and some other previewers run HTML in a sandbox where localStorage
+  // is blocked. These helpers keep the timer fully functional there and simply
+  // skip persistence when storage is unavailable.
+  function safeStorageGet(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const storageAvailable = (() => {
+    const key = '__studyTimerStorageTest__';
+    try {
+      window.localStorage.setItem(key, '1');
+      window.localStorage.removeItem(key);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  if (logsStorageNote) logsStorageNote.classList.toggle('visible', !storageAvailable);
+
+  if (isAppWindow && configPanel) {
+    configPanel.open = false;
+  }
+
+  if (configPanel) {
+    const savedPanelState = safeStorageGet('studyTimerConfigOpen');
+    if (savedPanelState === 'true') configPanel.open = true;
+    if (savedPanelState === 'false') configPanel.open = false;
+
+    configPanel.addEventListener('toggle', () => {
+      safeStorageSet('studyTimerConfigOpen', String(configPanel.open));
+    });
+  }
+
+
+  function applyTheme(theme, save = true) {
+    const allowed = ['dark', 'light', 'blue', 'green', 'purple', 'orange', 'pink', 'mono'];
+    const nextTheme = allowed.includes(theme) ? theme : 'dark';
+    document.body.dataset.theme = nextTheme;
+    if (themeColorMeta) themeColorMeta.content = getComputedStyle(document.body).getPropertyValue('--page').trim() || '#111214';
+    themeSwatches.forEach(btn => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === nextTheme));
+    });
+    if (save) safeStorageSet('studyTimerTheme', nextTheme);
+  }
+
+  const savedTheme = safeStorageGet('studyTimerTheme') || 'dark';
+  applyTheme(savedTheme, false);
+
+  if (themeOptions) {
+    themeOptions.addEventListener('click', e => {
+      const button = e.target.closest('.theme-swatch');
+      if (!button) return;
+      applyTheme(button.dataset.theme);
+    });
+  }
+
+  function openCleanWindow() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('app', '1');
+
+    // iOS does not have a useful desktop-style popup window model. The button is
+    // hidden there; Safari/Home Screen mode already provides the clean experience.
+    if (isIOS) {
+      window.location.href = url.href;
+      return;
+    }
+
+    const width = Math.min(760, Math.max(620, window.screen.availWidth - 120));
+    const height = Math.min(820, Math.max(650, window.screen.availHeight - 120));
+    const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+
+    window.open(
+      url.href,
+      'StudyBlockTimer',
+      `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+  }
+
+  if (openWindowBtn) openWindowBtn.addEventListener('click', openCleanWindow);
+
+  function parseMinutesSecondsInput(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+
+    if (/^\d+(?:\.\d+)?$/.test(text)) {
+      const minutes = Number(text);
+      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 240) return null;
+      return Math.round(minutes * 60 * 1000);
+    }
+
+    const match = text.match(/^(\d+):(\d{1,2})$/);
+    if (!match) return null;
+    const minutes = Number(match[1]);
+    const seconds = Number(match[2]);
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds < 0 || seconds > 59) return null;
+    const totalSeconds = minutes * 60 + seconds;
+    if (totalSeconds <= 0 || totalSeconds > 240 * 60) return null;
+    return totalSeconds * 1000;
+  }
+
+  function parseBreakMinutesSecondsInput(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+
+    if (/^\d+(?:\.\d+)?$/.test(text)) {
+      const minutes = Number(text);
+      if (!Number.isFinite(minutes) || minutes < 0 || minutes > 240) return null;
+      return Math.round(minutes * 60 * 1000);
+    }
+
+    const match = text.match(/^(\d+):(\d{1,2})$/);
+    if (!match) return null;
+    const minutes = Number(match[1]);
+    const seconds = Number(match[2]);
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds < 0 || seconds > 59) return null;
+    const totalSeconds = minutes * 60 + seconds;
+    if (totalSeconds < 0 || totalSeconds > 240 * 60) return null;
+    return totalSeconds * 1000;
+  }
+
+  function formatMinutesSecondsInput(ms) {
+    const totalSeconds = Math.max(0, Math.round(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds ? `${minutes}:${String(seconds).padStart(2, '0')}` : String(minutes);
+  }
+
+  function loadSavedSettings() {
+    try {
+      const raw = safeStorageGet('studyTimerSettings');
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      return saved && typeof saved === 'object' ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveSettings() {
+    safeStorageSet('studyTimerSettings', JSON.stringify({
+      totalBlocks,
+      timerMode,
+      blockMinutes,
+      blockMs,
+      breakMinutes: breakMs / 60000,
+      breakMs,
+      recurringBreakUntimed,
+      useBreaks,
+      autoStartNext: autoStartToggle.checked,
+      showTotalTime: showTotalTimeToggle?.checked !== false,
+      showBreakTime: showBreakTimeToggle?.checked !== false,
+      autoStartBreak: autoStartBreakToggle.checked,
+      showCurrentSession: showCurrentSessionToggle.checked,
+      showSeconds: secondsToggle.checked,
+      secondsTitle: secondsTitleToggle.checked,
+      secondsTotal: secondsTotalToggle.checked,
+      secondsBlock: secondsBlockToggle.checked,
+      secondsCurrentSession: secondsCurrentSessionToggle.checked
+    }));
+  }
+
+  const savedSettings = loadSavedSettings();
+
+  let timerMode = savedSettings?.timerMode === 'countup' ? 'countup' : 'countdown';
+  let totalBlocks = Number.isFinite(savedSettings?.totalBlocks) ? savedSettings.totalBlocks : 5;
+  let blockMinutes = Number.isFinite(savedSettings?.blockMinutes) ? savedSettings.blockMinutes : 20;
+  let breakMinutes = Number.isFinite(savedSettings?.breakMinutes) ? savedSettings.breakMinutes : 5;
+  let useBreaks = typeof savedSettings?.useBreaks === 'boolean'
+    ? savedSettings.useBreaks
+    : (typeof savedSettings?.defaultUseBreaks === 'boolean' ? savedSettings.defaultUseBreaks : false);
+  let blockMs = Number.isFinite(savedSettings?.blockMs) ? savedSettings.blockMs : blockMinutes * 60 * 1000;
+  blockMinutes = blockMs / 60000;
+  let breakMs = Number.isFinite(savedSettings?.breakMs) ? savedSettings.breakMs : breakMinutes * 60 * 1000;
+  let recurringBreakUntimed = savedSettings?.recurringBreakUntimed === true;
+  breakMinutes = breakMs / 60000;
+
+  blocksInput.value = totalBlocks;
+  minutesInput.value = formatMinutesSecondsInput(blockMs);
+  breakInput.value = formatMinutesSecondsInput(breakMs);
+  recurringBreakInput.value = recurringBreakUntimed ? '' : formatMinutesSecondsInput(breakMs);
+  autoStartToggle.checked = savedSettings?.autoStartNext !== false;
+  if (showTotalTimeToggle) showTotalTimeToggle.checked = savedSettings?.showTotalTime !== false;
+  if (showBreakTimeToggle) showBreakTimeToggle.checked = savedSettings?.showBreakTime !== false;
+  autoStartBreakToggle.checked = savedSettings?.autoStartBreak === true;
+  showCurrentSessionToggle.checked = savedSettings?.showCurrentSession !== false;
+  secondsToggle.checked = savedSettings?.showSeconds !== false;
+  secondsTitleToggle.checked = savedSettings?.secondsTitle !== false;
+  secondsTotalToggle.checked = savedSettings?.secondsTotal !== false;
+  secondsBlockToggle.checked = savedSettings?.secondsBlock !== false;
+  secondsCurrentSessionToggle.checked = savedSettings?.secondsCurrentSession === true;
+
+  function syncTimerModeUi() {
+    const isCountUp = timerMode === 'countup';
+    countdownModeBtn?.classList.toggle('active', !isCountUp);
+    countupModeBtn?.classList.toggle('active', isCountUp);
+    countdownModeBtn?.setAttribute('aria-pressed', String(!isCountUp));
+    countupModeBtn?.setAttribute('aria-pressed', String(isCountUp));
+    if (timerModeHelp) {
+      timerModeHelp.textContent = isCountUp
+        ? 'Count-up blocks run until Done / Next. Breaks still use break minutes.'
+        : 'Countdown blocks end automatically at their set time.';
+    }
+    if (minutesInput) minutesInput.disabled = isCountUp;
+    blockMinutesField?.classList.toggle('mode-disabled', isCountUp);
+  }
+
+  function loadSessionLogs() {
+    try {
+      const raw = safeStorageGet('studyTimerSessionLogs');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  let sessionHistory = loadSessionLogs();
+  let activeSession = null;
+  let activeBlockRecord = null;
+
+  function saveSessionLogs() {
+    safeStorageSet('studyTimerSessionLogs', JSON.stringify(sessionHistory));
+  }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function formatClockTime(ts, showSeconds = false) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], showSeconds
+      ? { hour: 'numeric', minute: '2-digit', second: '2-digit' }
+      : { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function formatSessionDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatDuration(ms, showSeconds = true) {
+    const totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const sec = totalSeconds % 60;
+    if (!showSeconds) {
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m${sec ? ` ${sec}s` : ''}`;
+    return `${sec}s`;
+  }
+
+  function ensureActiveSession() {
+    if (activeSession) return;
+    const now = Date.now();
+    activeSession = {
+      id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+      startedAt: now,
+      endedAt: null,
+      mode: timerMode,
+      totalBlocks,
+      blockMinutes,
+      useBreaks,
+      breakMinutes,
+      blocks: [],
+      comment: ''
+    };
+  }
+
+  function beginActiveBlockIfNeeded() {
+    if (phase !== 'work' || currentBlock >= totalBlocks) return;
+    ensureActiveSession();
+    if (activeBlockRecord && activeBlockRecord.blockNumber === currentBlock + 1) return;
+    activeBlockRecord = {
+      blockNumber: currentBlock + 1,
+      startedAt: Date.now(),
+      endedAt: null,
+      activeDurationMs: 0,
+      plannedDurationMs: timerMode === 'countup' ? null : currentPhaseMs(),
+      mode: timerMode,
+      comment: ''
+    };
+    renderCurrentSession(true);
+  }
+
+  function finishActiveBlock() {
+    if (!activeSession || !activeBlockRecord) return;
+    if (activeBlockRecord.blockNumber !== currentBlock + 1) return;
+    activeBlockRecord.endedAt = Date.now();
+    activeBlockRecord.activeDurationMs = timerMode === 'countup'
+      ? currentElapsed()
+      : Math.min(currentPhaseMs(), currentElapsed());
+    activeSession.blocks.push(activeBlockRecord);
+    activeBlockRecord = null;
+    renderCurrentSession(true);
+  }
+
+  function finishSuspendedActiveBlock() {
+    if (!activeSession || !activeBlockRecord || !resumeSameBlockAfterBreak) return;
+    activeBlockRecord.endedAt = Date.now();
+    activeBlockRecord.activeDurationMs = timerMode === 'countup'
+      ? suspendedWorkElapsedMs
+      : Math.min(suspendedWorkDurationMs ?? blockMs, suspendedWorkElapsedMs);
+    activeSession.blocks.push(activeBlockRecord);
+    activeBlockRecord = null;
+    renderCurrentSession(true);
+  }
+
+  let lastCompletedWorkMs = 0;
+  let currentSessionRenderSignature = '';
+
+  function updateCurrentSessionLiveTimes() {
+    if (!activeSession || !currentSessionPanel || currentSessionPanel.hidden) return;
+    const now = Date.now();
+    const elapsed = Math.max(0, now - activeSession.startedAt);
+    const showCurrentSessionSeconds = secondsToggle.checked && secondsCurrentSessionToggle.checked;
+    const modeLabel = activeSession.mode === 'countup' ? 'Count up' : 'Countdown';
+    if (currentSessionTitle) {
+      currentSessionTitle.replaceChildren();
+      const badge = document.createElement('span');
+      badge.className = 'current-session-badge';
+      badge.textContent = 'Current';
+      const titleText = document.createTextNode(`${formatSessionDate(activeSession.startedAt)} · ${formatClockTime(activeSession.startedAt, showCurrentSessionSeconds)}–Now · ${formatDuration(elapsed, showCurrentSessionSeconds)}`);
+      const meta = document.createElement('div');
+      meta.className = 'current-session-meta';
+      const completed = activeSession.blocks?.length || 0;
+      meta.textContent = `${completed} completed block${completed === 1 ? '' : 's'} · ${modeLabel}`;
+      const line = document.createElement('div');
+      line.append(badge, titleText);
+      currentSessionTitle.append(line, meta);
+    }
+
+    const liveTime = currentSessionBlocks?.querySelector('[data-live-block-time]');
+    const liveDuration = currentSessionBlocks?.querySelector('[data-live-block-duration]');
+    if (activeBlockRecord && liveTime && liveDuration) {
+      liveTime.textContent = `${formatClockTime(activeBlockRecord.startedAt, showCurrentSessionSeconds)}–Now`;
+      liveDuration.textContent = formatDuration(currentElapsed(), showCurrentSessionSeconds);
+    }
+  }
+
+  function renderCurrentSession(force = false) {
+    if (!currentSessionPanel) return;
+    if (!activeSession || !showCurrentSessionToggle.checked) {
+      currentSessionPanel.hidden = true;
+      currentSessionRenderSignature = '';
+      return;
+    }
+
+    currentSessionPanel.hidden = false;
+    const showCurrentSessionSeconds = secondsToggle.checked && secondsCurrentSessionToggle.checked;
+    const signature = `${activeSession.id}|${activeSession.blocks?.length || 0}|${activeBlockRecord?.blockNumber || 0}|${phase}|${showCurrentSessionSeconds}`;
+    if (!force && signature === currentSessionRenderSignature) {
+      updateCurrentSessionLiveTimes();
+      return;
+    }
+    currentSessionRenderSignature = signature;
+
+    if (currentSessionInlineComment) currentSessionInlineComment.value = activeSession.comment || '';
+    if (currentSessionComment) currentSessionComment.value = activeSession.comment || '';
+    if (currentSessionBlocks) {
+      currentSessionBlocks.replaceChildren();
+      const records = [...(activeSession.blocks || [])];
+      records.forEach(block => {
+        const row = document.createElement('div');
+        row.className = 'session-block-row';
+        const name = document.createElement('span');
+        name.className = 'session-block-name';
+        name.textContent = `Block ${block.blockNumber}`;
+        const times = document.createElement('span');
+        times.className = 'session-block-time';
+        times.textContent = `${formatClockTime(block.startedAt, showCurrentSessionSeconds)}–${formatClockTime(block.endedAt, showCurrentSessionSeconds)}`;
+        const duration = document.createElement('span');
+        duration.className = 'session-block-duration';
+        duration.textContent = formatDuration(block.activeDurationMs, showCurrentSessionSeconds);
+        const comment = document.createElement('input');
+        comment.type = 'text';
+        comment.className = 'session-block-comment';
+        comment.placeholder = 'Block comment…';
+        comment.value = block.comment || '';
+        comment.setAttribute('aria-label', `Comment for block ${block.blockNumber}`);
+        comment.addEventListener('input', () => { block.comment = comment.value; });
+        row.append(name, times, duration, comment);
+        currentSessionBlocks.appendChild(row);
+      });
+
+      if (activeBlockRecord && phase === 'work') {
+        const row = document.createElement('div');
+        row.className = 'session-block-row current-live';
+        const name = document.createElement('span');
+        name.className = 'session-block-name';
+        name.textContent = `Block ${activeBlockRecord.blockNumber}`;
+        const times = document.createElement('span');
+        times.className = 'session-block-time';
+        times.dataset.liveBlockTime = '1';
+        const duration = document.createElement('span');
+        duration.className = 'session-block-duration';
+        duration.dataset.liveBlockDuration = '1';
+        const comment = document.createElement('input');
+        comment.type = 'text';
+        comment.className = 'session-block-comment';
+        comment.placeholder = 'Block comment…';
+        comment.value = activeBlockRecord.comment || '';
+        comment.setAttribute('aria-label', `Comment for current block ${activeBlockRecord.blockNumber}`);
+        comment.addEventListener('input', () => { activeBlockRecord.comment = comment.value; });
+        row.append(name, times, duration, comment);
+        currentSessionBlocks.appendChild(row);
+      }
+    }
+    updateCurrentSessionLiveTimes();
+  }
+
+  if (currentSessionInlineComment) {
+    currentSessionInlineComment.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    currentSessionInlineComment.addEventListener('keydown', event => {
+      if (event.code === 'Space') {
+        // Inputs inside <summary> can trigger the native details toggle on Space.
+        // Prevent that native action, then insert the space ourselves so typing feels normal.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const start = currentSessionInlineComment.selectionStart ?? currentSessionInlineComment.value.length;
+        const end = currentSessionInlineComment.selectionEnd ?? start;
+        currentSessionInlineComment.setRangeText(' ', start, end, 'end');
+        currentSessionInlineComment.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+      event.stopPropagation();
+    });
+    currentSessionInlineComment.addEventListener('input', () => {
+      if (!activeSession) return;
+      activeSession.comment = currentSessionInlineComment.value;
+      if (currentSessionComment && currentSessionComment.value !== currentSessionInlineComment.value) {
+        currentSessionComment.value = currentSessionInlineComment.value;
+      }
+    });
+  }
+  if (currentSessionComment) {
+    currentSessionComment.addEventListener('input', () => {
+      if (!activeSession) return;
+      activeSession.comment = currentSessionComment.value;
+      if (currentSessionInlineComment && currentSessionInlineComment.value !== currentSessionComment.value) {
+        currentSessionInlineComment.value = currentSessionComment.value;
+      }
+    });
+  }
+
+  function completeActiveSession() {
+    if (!activeSession) return;
+    releaseWakeLock();
+    activeSession.endedAt = Date.now();
+    lastCompletedWorkMs = (activeSession.blocks || []).reduce((sum, block) => sum + (block.activeDurationMs || 0), 0);
+    sessionHistory.unshift(activeSession);
+    activeSession = null;
+    activeBlockRecord = null;
+    renderCurrentSession(true);
+    saveSessionLogs();
+    renderSessionLogs();
+  }
+
+  function csvCell(value) {
+    const text = value == null ? '' : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function isoForExport(ts) {
+    if (!ts) return '';
+    return new Date(ts).toISOString();
+  }
+
+  function durationSeconds(ms) {
+    return Math.max(0, Math.round((ms || 0) / 1000));
+  }
+
+  function sessionRowsForExport(sessions) {
+    const rows = [[
+      'Session ID',
+      'Timer mode',
+      'Session date',
+      'Session start',
+      'Session end',
+      'Session duration',
+      'Session duration seconds',
+      'Session comment',
+      'Block',
+      'Block mode',
+      'Block start',
+      'Block end',
+      'Block duration',
+      'Block duration seconds',
+      'Planned block duration',
+      'Planned block seconds',
+      'Block comment'
+    ]];
+
+    sessions.forEach(session => {
+      const sessionDurationMs = Math.max(0, (session.endedAt || session.startedAt) - session.startedAt);
+      const blocks = Array.isArray(session.blocks) ? session.blocks : [];
+      const pushRow = block => {
+        rows.push([
+          session.id || '',
+          session.mode === 'countup' ? 'Count up' : 'Countdown',
+          formatSessionDate(session.startedAt),
+          isoForExport(session.startedAt),
+          isoForExport(session.endedAt),
+          formatDuration(sessionDurationMs),
+          durationSeconds(sessionDurationMs),
+          session.comment || '',
+          block?.blockNumber ?? '',
+          block ? ((block.mode || session.mode) === 'countup' ? 'Count up' : 'Countdown') : '',
+          isoForExport(block?.startedAt),
+          isoForExport(block?.endedAt),
+          block ? formatDuration(block.activeDurationMs) : '',
+          block ? durationSeconds(block.activeDurationMs) : '',
+          block && Number.isFinite(block.plannedDurationMs) ? formatDuration(block.plannedDurationMs) : '',
+          block && Number.isFinite(block.plannedDurationMs) ? durationSeconds(block.plannedDurationMs) : '',
+          block?.comment || ''
+        ]);
+      };
+
+      if (blocks.length) blocks.forEach(pushRow);
+      else pushRow(null);
+    });
+
+    return rows;
+  }
+
+  async function exportSessionsCsv(sessions, filename) {
+    if (!sessions.length) return;
+    const csv = sessionRowsForExport(sessions)
+      .map(row => row.map(csvCell).join(','))
+      .join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+
+    // On iPhone/iPad, the native share sheet is substantially more reliable than
+    // synthetic downloads and lets the user save directly to Files/iCloud Drive.
+    if (isIOS && navigator.share && typeof File !== 'undefined') {
+      try {
+        const file = new File([blob], filename, { type: 'text/csv' });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Study Block Timer export' });
+          return;
+        }
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        // Fall through to the normal browser download path.
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportFilenameForSession(session) {
+    const d = new Date(session.startedAt || Date.now());
+    const stamp = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}_${pad2(d.getHours())}-${pad2(d.getMinutes())}`;
+    return `study-session_${stamp}.csv`;
+  }
+
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let quoted = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else if (ch === '"') {
+          quoted = false;
+        } else {
+          cell += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i += 1;
+        row.push(cell);
+        if (row.some(value => value !== '')) rows.push(row);
+        row = [];
+        cell = '';
+      } else {
+        cell += ch;
+      }
+    }
+
+    row.push(cell);
+    if (row.some(value => value !== '')) rows.push(row);
+    return rows;
+  }
+
+  function timestampFromImport(value) {
+    const text = String(value || '').trim();
+    if (!text) return null;
+    const ts = Date.parse(text);
+    return Number.isFinite(ts) ? ts : null;
+  }
+
+  function numberFromImport(value) {
+    const n = Number(String(value ?? '').trim());
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function sessionsFromCsv(text) {
+    const rows = parseCsv(String(text || '').replace(/^\ufeff/, ''));
+    if (rows.length < 2) throw new Error('No session rows found.');
+
+    const headers = rows[0].map(header => header.trim());
+    const required = [
+      'Session ID', 'Session start', 'Session end', 'Session comment',
+      'Block', 'Block start', 'Block end', 'Block duration seconds',
+      'Planned block seconds', 'Block comment'
+    ];
+    if (!required.every(name => headers.includes(name))) {
+      throw new Error('This does not look like a Study Block Timer export.');
+    }
+
+    const col = Object.fromEntries(headers.map((name, index) => [name, index]));
+    const sessions = new Map();
+
+    rows.slice(1).forEach((values, rowIndex) => {
+      const get = name => values[col[name]] ?? '';
+      const startedAt = timestampFromImport(get('Session start'));
+      if (!startedAt) return;
+
+      let id = String(get('Session ID') || '').trim();
+      if (!id) id = `import-${startedAt}-${rowIndex}`;
+
+      let session = sessions.get(id);
+      if (!session) {
+        session = {
+          id,
+          startedAt,
+          endedAt: timestampFromImport(get('Session end')),
+          mode: String(get('Timer mode') || '').toLowerCase().includes('up') ? 'countup' : 'countdown',
+          totalBlocks: 0,
+          blockMinutes: 0,
+          useBreaks: false,
+          breakMinutes: 0,
+          blocks: [],
+          comment: String(get('Session comment') || '')
+        };
+        sessions.set(id, session);
+      }
+
+      const blockNumber = numberFromImport(get('Block'));
+      if (blockNumber != null && blockNumber > 0) {
+        const plannedSeconds = numberFromImport(get('Planned block seconds'));
+        const activeSeconds = numberFromImport(get('Block duration seconds')) || 0;
+        const importedBlockMode = String(get('Block mode') || '').toLowerCase().includes('up') ? 'countup' : session.mode;
+        session.blocks.push({
+          blockNumber: Math.round(blockNumber),
+          startedAt: timestampFromImport(get('Block start')),
+          endedAt: timestampFromImport(get('Block end')),
+          activeDurationMs: Math.max(0, activeSeconds * 1000),
+          plannedDurationMs: plannedSeconds == null || importedBlockMode === 'countup' ? null : Math.max(0, plannedSeconds * 1000),
+          mode: importedBlockMode,
+          comment: String(get('Block comment') || '')
+        });
+      }
+    });
+
+    const imported = [...sessions.values()];
+    imported.forEach(session => {
+      session.blocks.sort((a, b) => a.blockNumber - b.blockNumber);
+      session.totalBlocks = session.blocks.length;
+      const firstPlanned = session.blocks.find(block => Number.isFinite(block.plannedDurationMs) && block.plannedDurationMs > 0)?.plannedDurationMs || 0;
+      session.blockMinutes = firstPlanned / 60000;
+      if (!session.mode) session.mode = session.blocks.some(block => block.mode === 'countup') ? 'countup' : 'countdown';
+      if (!session.endedAt) {
+        const lastEnd = [...session.blocks].reverse().find(block => block.endedAt)?.endedAt;
+        session.endedAt = lastEnd || session.startedAt;
+      }
+    });
+
+    if (!imported.length) throw new Error('No valid sessions found in this file.');
+    return imported;
+  }
+
+  function mergeImportedSessions(imported) {
+    const byId = new Map(sessionHistory.map(session => [session.id, session]));
+    imported.forEach(session => byId.set(session.id, session));
+    sessionHistory = [...byId.values()].sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+    saveSessionLogs();
+    renderSessionLogs();
+  }
+
+  function toLocalDateTimeValue(timestamp) {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    const yyyy = d.getFullYear();
+    const mm = pad2(d.getMonth() + 1);
+    const dd = pad2(d.getDate());
+    const hh = pad2(d.getHours());
+    const min = pad2(d.getMinutes());
+    const sec = pad2(d.getSeconds());
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}:${sec}`;
+  }
+
+  function fromLocalDateTimeValue(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    const ts = d.getTime();
+    return Number.isFinite(ts) ? ts : null;
+  }
+
+  function renderSessionLogs() {
+    if (!sessionLogsEl) return;
+    sessionLogsEl.replaceChildren();
+    if (logsCount) logsCount.textContent = sessionHistory.length ? `(${sessionHistory.length})` : '';
+    if (exportAllSessionsBtn) exportAllSessionsBtn.disabled = sessionHistory.length === 0;
+
+    if (!sessionHistory.length) {
+      const empty = document.createElement('div');
+      empty.className = 'logs-empty';
+      empty.textContent = 'Completed sessions will appear here.';
+      sessionLogsEl.appendChild(empty);
+      return;
+    }
+
+    sessionHistory.forEach((session, index) => {
+      const details = document.createElement('details');
+      details.className = 'session-log';
+      if (index === 0) details.open = true;
+
+      const summary = document.createElement('summary');
+      const summaryMain = document.createElement('div');
+      summaryMain.className = 'session-log-summary-main';
+      const left = document.createElement('div');
+      left.className = 'session-log-title';
+      const title = document.createElement('div');
+      const sessionDuration = Math.max(0, (session.endedAt || session.startedAt) - session.startedAt);
+      title.textContent = `${formatSessionDate(session.startedAt)} · ${formatClockTime(session.startedAt)}–${formatClockTime(session.endedAt)} · ${formatDuration(sessionDuration)}`;
+      const meta = document.createElement('div');
+      meta.className = 'session-log-meta';
+      const sessionModeLabel = session.mode === 'countup' ? 'Count up' : 'Countdown';
+      const workedMs = (session.blocks || []).reduce((sum, block) => sum + (block.activeDurationMs || 0), 0);
+      meta.textContent = `${session.blocks?.length || 0} block${session.blocks?.length === 1 ? '' : 's'} · ${sessionModeLabel}`;
+      if (session.mode !== 'countup') {
+        const breakNonWorkMs = Math.max(0, sessionDuration - workedMs);
+        meta.textContent += ` · Time worked ${formatDuration(workedMs)} · Break/non-work ${formatDuration(breakNonWorkMs)}`;
+      }
+      left.append(title, meta);
+
+      const inlineComment = document.createElement('input');
+      inlineComment.type = 'text';
+      inlineComment.className = 'session-inline-comment';
+      inlineComment.placeholder = 'Session comment…';
+      inlineComment.value = session.comment || '';
+      inlineComment.setAttribute('aria-label', 'Session comment');
+      inlineComment.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      inlineComment.addEventListener('keydown', event => {
+        if (event.code === 'Space') {
+          // Inputs inside <summary> can trigger the native details toggle on Space.
+          // Prevent that native action, then insert the space ourselves so typing feels normal.
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const start = inlineComment.selectionStart ?? inlineComment.value.length;
+          const end = inlineComment.selectionEnd ?? start;
+          inlineComment.setRangeText(' ', start, end, 'end');
+          inlineComment.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+        event.stopPropagation();
+      });
+
+      summaryMain.append(left, inlineComment);
+      const arrow = document.createElement('span');
+      arrow.className = 'session-log-arrow';
+      arrow.textContent = '▾';
+      summary.append(summaryMain, arrow);
+
+      const body = document.createElement('div');
+      body.className = 'session-log-body';
+
+      const sessionEditPanel = document.createElement('div');
+      sessionEditPanel.className = 'session-edit-panel';
+
+      const makeEditField = (labelText, value, ariaLabel) => {
+        const field = document.createElement('label');
+        field.className = 'session-edit-field';
+        field.textContent = labelText;
+        const input = document.createElement('input');
+        input.type = 'datetime-local';
+        input.step = '1';
+        input.className = 'session-edit-input';
+        input.value = value;
+        input.setAttribute('aria-label', ariaLabel);
+        field.appendChild(input);
+        return { field, input };
+      };
+
+      const startEdit = makeEditField('Session start', toLocalDateTimeValue(session.startedAt), 'Edit session start time');
+      const endEdit = makeEditField('Session end', toLocalDateTimeValue(session.endedAt), 'Edit session end time');
+      const editNote = document.createElement('div');
+      editNote.className = 'session-edit-note';
+      editNote.textContent = 'Durations update automatically from the edited start/end times. Block times are edited independently.';
+      sessionEditPanel.append(startEdit.field, endEdit.field, editNote);
+
+      const blockList = document.createElement('div');
+      blockList.className = 'session-blocks';
+
+      (session.blocks || []).forEach(block => {
+        const row = document.createElement('div');
+        row.className = 'session-block-row';
+        const name = document.createElement('span');
+        name.className = 'session-block-name';
+        name.textContent = `Block ${block.blockNumber}`;
+        const times = document.createElement('span');
+        times.className = 'session-block-time';
+        times.textContent = `${formatClockTime(block.startedAt)}–${formatClockTime(block.endedAt)}`;
+        const duration = document.createElement('span');
+        duration.className = 'session-block-duration';
+        duration.textContent = formatDuration(block.activeDurationMs);
+        const blockComment = document.createElement('input');
+        blockComment.type = 'text';
+        blockComment.className = 'session-block-comment';
+        blockComment.placeholder = 'Block comment…';
+        blockComment.value = block.comment || '';
+        blockComment.setAttribute('aria-label', `Comment for block ${block.blockNumber}`);
+        blockComment.addEventListener('input', () => {
+          block.comment = blockComment.value;
+          saveSessionLogs();
+        });
+
+        const blockEdit = document.createElement('div');
+        blockEdit.className = 'session-block-edit';
+
+        const numberField = document.createElement('label');
+        numberField.className = 'session-edit-field';
+        numberField.textContent = 'Block';
+        const numberInput = document.createElement('input');
+        numberInput.type = 'number';
+        numberInput.min = '1';
+        numberInput.step = '1';
+        numberInput.className = 'block-edit-input';
+        numberInput.value = String(block.blockNumber);
+        numberInput.setAttribute('aria-label', `Edit block ${block.blockNumber} number`);
+        numberField.appendChild(numberInput);
+
+        const blockStartField = document.createElement('label');
+        blockStartField.className = 'session-edit-field';
+        blockStartField.textContent = 'Start';
+        const blockStartInput = document.createElement('input');
+        blockStartInput.type = 'datetime-local';
+        blockStartInput.step = '1';
+        blockStartInput.className = 'block-edit-input';
+        blockStartInput.value = toLocalDateTimeValue(block.startedAt);
+        blockStartInput.setAttribute('aria-label', `Edit block ${block.blockNumber} start time`);
+        blockStartField.appendChild(blockStartInput);
+
+        const blockEndField = document.createElement('label');
+        blockEndField.className = 'session-edit-field';
+        blockEndField.textContent = 'End';
+        const blockEndInput = document.createElement('input');
+        blockEndInput.type = 'datetime-local';
+        blockEndInput.step = '1';
+        blockEndInput.className = 'block-edit-input';
+        blockEndInput.value = toLocalDateTimeValue(block.endedAt);
+        blockEndInput.setAttribute('aria-label', `Edit block ${block.blockNumber} end time`);
+        blockEndField.appendChild(blockEndInput);
+
+        blockEdit.append(numberField, blockStartField, blockEndField);
+        blockEdit._blockRef = block;
+        blockEdit._numberInput = numberInput;
+        blockEdit._startInput = blockStartInput;
+        blockEdit._endInput = blockEndInput;
+
+        row.append(name, times, duration, blockComment, blockEdit);
+        blockList.appendChild(row);
+      });
+
+      const label = document.createElement('label');
+      label.className = 'session-comment-label';
+      label.textContent = 'Comment';
+      const textarea = document.createElement('textarea');
+      textarea.className = 'session-comment';
+      textarea.placeholder = 'Add a note about this session…';
+      textarea.value = session.comment || '';
+      inlineComment.addEventListener('input', () => {
+        session.comment = inlineComment.value;
+        textarea.value = inlineComment.value;
+        saveSessionLogs();
+      });
+      textarea.addEventListener('input', () => {
+        session.comment = textarea.value;
+        inlineComment.value = textarea.value;
+        saveSessionLogs();
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'session-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'edit-session-btn';
+      editBtn.textContent = 'Edit';
+      editBtn.setAttribute('aria-label', 'Edit this saved session');
+
+      const cancelEditBtn = document.createElement('button');
+      cancelEditBtn.type = 'button';
+      cancelEditBtn.className = 'cancel-edit-btn';
+      cancelEditBtn.textContent = 'Cancel';
+
+      let editing = false;
+      editBtn.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!editing) {
+          editing = true;
+          details.classList.add('editing');
+          details.open = true;
+          editBtn.textContent = 'Save';
+          editBtn.classList.add('saving');
+          return;
+        }
+
+        const newSessionStart = fromLocalDateTimeValue(startEdit.input.value);
+        const newSessionEnd = fromLocalDateTimeValue(endEdit.input.value);
+        if (!newSessionStart || !newSessionEnd || newSessionEnd < newSessionStart) {
+          alert('Session end must be the same as or later than session start.');
+          return;
+        }
+
+        const blockEdits = [...blockList.querySelectorAll('.session-block-edit')];
+        const seenNumbers = new Set();
+        const parsed = [];
+        for (const editor of blockEdits) {
+          const number = Number.parseInt(editor._numberInput.value, 10);
+          const startedAt = fromLocalDateTimeValue(editor._startInput.value);
+          const endedAt = fromLocalDateTimeValue(editor._endInput.value);
+          if (!Number.isFinite(number) || number < 1 || seenNumbers.has(number)) {
+            alert('Each block needs a unique block number of 1 or higher.');
+            return;
+          }
+          if (!startedAt || !endedAt || endedAt < startedAt) {
+            alert(`Block ${number}: end time must be the same as or later than start time.`);
+            return;
+          }
+          seenNumbers.add(number);
+          parsed.push({ editor, number, startedAt, endedAt });
+        }
+
+        session.startedAt = newSessionStart;
+        session.endedAt = newSessionEnd;
+        parsed.forEach(({ editor, number, startedAt, endedAt }) => {
+          const block = editor._blockRef;
+          block.blockNumber = number;
+          block.startedAt = startedAt;
+          block.endedAt = endedAt;
+          block.activeDurationMs = Math.max(0, endedAt - startedAt);
+        });
+        session.blocks.sort((a, b) => a.blockNumber - b.blockNumber);
+        session.totalBlocks = session.blocks.length;
+        saveSessionLogs();
+        renderSessionLogs();
+      });
+
+      cancelEditBtn.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        renderSessionLogs();
+      });
+
+      const exportBtn = document.createElement('button');
+      exportBtn.type = 'button';
+      exportBtn.className = 'export-btn';
+      exportBtn.textContent = 'Export session';
+      exportBtn.setAttribute('aria-label', 'Export this session as CSV');
+      exportBtn.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        exportSessionsCsv([session], exportFilenameForSession(session));
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'delete-session-btn';
+      deleteBtn.textContent = 'Delete session';
+      deleteBtn.setAttribute('aria-label', 'Delete this saved session');
+
+      let deleteConfirmTimer = null;
+      deleteBtn.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (deleteBtn.dataset.confirming !== 'true') {
+          deleteBtn.dataset.confirming = 'true';
+          deleteBtn.classList.add('confirming');
+          deleteBtn.textContent = 'Confirm delete';
+          if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
+          deleteConfirmTimer = setTimeout(() => {
+            deleteBtn.dataset.confirming = 'false';
+            deleteBtn.classList.remove('confirming');
+            deleteBtn.textContent = 'Delete session';
+          }, 3000);
+          return;
+        }
+
+        if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
+        sessionHistory.splice(index, 1);
+        saveSessionLogs();
+        renderSessionLogs();
+      });
+
+      actions.append(editBtn, cancelEditBtn, exportBtn, deleteBtn);
+      body.append(sessionEditPanel, blockList, label, textarea, actions);
+      details.append(summary, body);
+      sessionLogsEl.appendChild(details);
+    });
+  }
+
+  if (exportAllSessionsBtn) {
+    exportAllSessionsBtn.addEventListener('click', () => {
+      if (!sessionHistory.length) return;
+      const d = new Date();
+      const stamp = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      exportSessionsCsv(sessionHistory, `study-sessions_${stamp}.csv`);
+    });
+  }
+
+
+  if (importSessionsBtn && importSessionsInput) {
+    importSessionsBtn.addEventListener('click', () => {
+      importSessionsInput.value = '';
+      importSessionsInput.click();
+    });
+
+    importSessionsInput.addEventListener('change', async () => {
+      const file = importSessionsInput.files?.[0];
+      if (!file) return;
+      try {
+        const imported = sessionsFromCsv(await file.text());
+        mergeImportedSessions(imported);
+        if (importStatus) {
+          importStatus.textContent = `Imported ${imported.length} session${imported.length === 1 ? '' : 's'}.`;
+          setTimeout(() => {
+            if (importStatus.textContent.startsWith('Imported')) importStatus.textContent = '';
+          }, 3500);
+        }
+      } catch (error) {
+        if (importStatus) {
+          importStatus.textContent = error?.message || 'Could not import that file.';
+        }
+      }
+    });
+  }
+
+  let currentBlock = 0;
+  let phase = 'work';
+  let running = false;
+  let intervalId = null;
+  let phaseStartedAt = null;
+  let elapsedInPhaseMs = 0;
+  let countUpBreakAccumulatedMs = 0;
+  let breakEndedWaiting = false;
+  let activeBreakCountUp = false; // untimed break counts elapsed time until manually ended
+  // Ad-hoc breaks temporarily suspend the current work block rather than ending it.
+  let resumeSameBlockAfterBreak = false;
+  let scheduledOneOffBreakAfterBlock = null; // zero-based work block index
+  let scheduledOneOffBreakDurationMs = null; // custom duration for a scheduled one-time break
+  let scheduledOneOffBreakCountUp = false; // blank Block X time = untimed/count-up break
+  let suspendedWorkElapsedMs = 0;
+  let suspendedWorkDurationMs = null;
+  // The current phase keeps the duration it started with. Configuration changes
+  // apply to future blocks/breaks without disturbing an in-progress phase.
+  let activePhaseDurationMs = blockMs;
+
+  function formatTime(ms, showSeconds = false) {
+    const clamped = Math.max(0, ms);
+
+    if (!showSeconds) {
+      const totalMinutes = Math.floor(clamped / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours > 0
+        ? `${hours}:${String(minutes).padStart(2, '0')}`
+        : `${minutes}`;
+    }
+
+    const totalSeconds = Math.ceil(clamped / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function formatElapsed(ms, showSeconds = false) {
+    const clamped = Math.max(0, ms);
+    if (!showSeconds) {
+      const totalMinutes = Math.floor(clamped / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours > 0
+        ? `${hours}:${String(minutes).padStart(2, '0')}`
+        : `${minutes}`;
+    }
+
+    const totalSeconds = Math.floor(clamped / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function formatHumanMinutes(ms) {
+    const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours <= 0) return `${minutes} min`;
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${minutes} min`;
+  }
+
+  function formatBreakOverrun(ms, showSeconds = false) {
+    const overrun = Math.max(0, ms);
+    if (!showSeconds) {
+      const totalMinutes = Math.max(1, Math.ceil(overrun / 60000));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return hours > 0
+        ? `-${hours}:${String(minutes).padStart(2, '0')}`
+        : `-${totalMinutes}`;
+    }
+
+    const totalSeconds = Math.max(1, Math.floor(overrun / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `-${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return `-${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function renderMainTime(ms, countUp = false) {
+    const showSeconds = secondsToggle.checked && secondsTotalToggle.checked;
+    const formatter = countUp ? formatElapsed : formatTime;
+    if (!showSeconds) {
+      totalDisplay.textContent = formatter(ms, false);
+      return;
+    }
+
+    const formatted = formatter(ms, true);
+    const lastColon = formatted.lastIndexOf(':');
+    if (lastColon === -1) {
+      totalDisplay.textContent = formatted;
+      return;
+    }
+
+    const main = formatted.slice(0, lastColon + 1);
+    const seconds = formatted.slice(lastColon + 1);
+    totalDisplay.replaceChildren(
+      document.createTextNode(main),
+      Object.assign(document.createElement('span'), {
+        className: 'time-seconds',
+        textContent: seconds
+      })
+    );
+  }
+
+  function currentElapsed() {
+    return running && phaseStartedAt != null
+      ? elapsedInPhaseMs + (Date.now() - phaseStartedAt)
+      : elapsedInPhaseMs;
+  }
+
+  function countUpWorkTotalMs() {
+    const completed = (activeSession?.blocks || []).reduce((sum, block) => sum + (block.activeDurationMs || 0), 0);
+    const current = phase === 'work' && currentBlock < totalBlocks
+      ? currentElapsed()
+      : (phase === 'break' && resumeSameBlockAfterBreak ? suspendedWorkElapsedMs : 0);
+    return completed + current;
+  }
+
+  function countUpBreakTotalMs() {
+    const currentBreak = phase === 'break' && currentBlock < totalBlocks ? currentElapsed() : 0;
+    return countUpBreakAccumulatedMs + currentBreak;
+  }
+
+  function updateCountUpTotals() {
+    if (!countupTotals) return;
+    // Show elapsed session totals in both timer modes. The main countdown itself
+    // still represents work remaining; these are supplemental elapsed totals.
+    const showTotal = showTotalTimeToggle?.checked !== false;
+    const showBreak = showBreakTimeToggle?.checked !== false;
+    countupTotals.hidden = !showTotal && !showBreak;
+    if (countupTotalTime) countupTotalTime.hidden = !showTotal;
+    if (countupBreakTime) countupBreakTime.hidden = !showBreak;
+    const sep = countupTotals.querySelector('.countup-totals-sep');
+    if (sep) sep.hidden = !(showTotal && showBreak);
+
+    const workMs = countUpWorkTotalMs();
+    const breakTotalMs = countUpBreakTotalMs();
+    const totalMs = workMs + breakTotalMs;
+    // Keep these summaries calm and minute-focused even when seconds are enabled elsewhere.
+    if (countupTotalTime) countupTotalTime.textContent = `Total time ${formatHumanMinutes(totalMs)}`;
+    if (countupBreakTime) countupBreakTime.textContent = `Break time ${formatHumanMinutes(breakTotalMs)}`;
+  }
+
+  function currentPhaseMs() {
+    return activePhaseDurationMs;
+  }
+
+  function remainingCurrent() {
+    if (currentBlock >= totalBlocks) return 0;
+    return Math.max(0, currentPhaseMs() - currentElapsed());
+  }
+
+  function remainingTotal() {
+    if (currentBlock >= totalBlocks) return 0;
+
+    // In countdown mode the main timer represents WORK remaining only.
+    // Breaks have their own countdown/overrun display and do not change this total.
+    if (phase === 'work') {
+      const laterWorkBlocks = totalBlocks - currentBlock - 1;
+      return remainingCurrent() + laterWorkBlocks * blockMs;
+    }
+
+    const laterWorkBlocks = totalBlocks - currentBlock - 1;
+    if (resumeSameBlockAfterBreak) {
+      // An ad-hoc break pauses the current block, so its unfinished work still
+      // belongs in the main work-remaining timer.
+      const currentRemaining = Math.max(0, (suspendedWorkDurationMs ?? blockMs) - suspendedWorkElapsedMs);
+      return currentRemaining + laterWorkBlocks * blockMs;
+    }
+
+    // A normal between-block break follows a completed work block, so only
+    // future work blocks remain.
+    return laterWorkBlocks * blockMs;
+  }
+
+  function renderBlocks() {
+    blocksEl.innerHTML = '';
+    for (let i = 0; i < totalBlocks; i++) {
+      const el = document.createElement('div');
+      el.className = 'block';
+
+      if (i < currentBlock) {
+        el.classList.add('done');
+        el.textContent = '✓';
+      } else {
+        el.textContent = String(i + 1);
+      }
+
+      if (i === currentBlock && currentBlock < totalBlocks) {
+        el.classList.add('current');
+      }
+
+      blocksEl.appendChild(el);
+    }
+  }
+
+  function updateStatusIndicator() {
+    if (!statusDot) return;
+    statusDot.className = 'status-dot';
+
+    if (currentBlock >= totalBlocks) {
+      statusDot.classList.add('complete');
+    } else if (running) {
+      statusDot.classList.add('running');
+    } else if (currentElapsed() > 0) {
+      statusDot.classList.add('paused');
+    }
+  }
+
+  function updateWindowTitle() {
+    if (currentBlock >= totalBlocks) {
+      document.title = '✓ Done — Study Block Timer';
+      return;
+    }
+
+    const showTitleSeconds = secondsToggle.checked && secondsTitleToggle.checked;
+    const displayTime = timerMode === 'countup'
+      ? formatElapsed(countUpWorkTotalMs(), showTitleSeconds)
+      : formatTime(remainingTotal(), showTitleSeconds);
+    const symbol = running ? '▶' : (currentElapsed() > 0 ? 'Ⅱ' : '○');
+    document.title = `${symbol} ${displayTime} — Study Block Timer`;
+  }
+
+  function update() {
+    renderCurrentSession();
+    updateCountUpTotals();
+    if (currentBlock >= totalBlocks) {
+      if (timerMode === 'countup') renderMainTime(lastCompletedWorkMs, true);
+      else totalDisplay.textContent = '0';
+      blockLabel.textContent = `All ${totalBlocks} blocks complete`;
+      currentBlockDisplay.textContent = 'Done';
+      startPauseBtn.textContent = 'Start';
+      startPauseBtn.disabled = true;
+      nextBtn.disabled = true;
+      if (addBreakBtn) addBreakBtn.hidden = true;
+      closeBreakMenu();
+      scheduledOneOffBreakAfterBlock = null;
+      scheduledOneOffBreakDurationMs = null;
+      scheduledOneOffBreakCountUp = false;
+      if (breakScheduledChip) breakScheduledChip.hidden = true;
+      renderBlocks();
+      updateStatusIndicator();
+      updateWindowTitle();
+      return;
+    }
+
+    if (timerMode === 'countup') renderMainTime(countUpWorkTotalMs(), true);
+    else renderMainTime(remainingTotal(), false);
+
+    const showBlockSeconds = secondsToggle.checked && secondsBlockToggle.checked;
+    currentBlockDisplay.classList.remove('break-overrun');
+    if (phase === 'break') {
+      blockLabel.textContent = resumeSameBlockAfterBreak
+        ? `Break during block ${currentBlock + 1}`
+        : `Break after block ${currentBlock + 1}`;
+      if (activeBreakCountUp) {
+        // Untimed one-time breaks simply show elapsed break time and wait for Done / Next.
+        currentBlockDisplay.textContent = `${formatElapsed(currentElapsed(), true)} break`;
+      } else {
+        const breakOverrunMs = currentElapsed() - currentPhaseMs();
+        if (breakOverrunMs > 0 && !autoStartBreakToggle.checked) {
+          currentBlockDisplay.classList.add('break-overrun');
+          // Breaks always show seconds, including negative overrun time.
+          currentBlockDisplay.textContent = `${formatBreakOverrun(breakOverrunMs, true)} break`;
+        } else {
+          currentBlockDisplay.textContent = `${formatTime(remainingCurrent(), true)} break`;
+        }
+      }
+    } else {
+      blockLabel.textContent = `Block ${currentBlock + 1} of ${totalBlocks}`;
+      if (timerMode === 'countup') {
+        currentBlockDisplay.textContent = showBlockSeconds
+          ? `${formatElapsed(currentElapsed(), true)} current block`
+          : `${formatHumanMinutes(currentElapsed())} current block`;
+      } else {
+        currentBlockDisplay.textContent = showBlockSeconds
+          ? `${formatTime(remainingCurrent(), true)} current block`
+          : `${formatTime(remainingCurrent(), false)} min current block`;
+      }
+    }
+    startPauseBtn.textContent = running ? 'Pause' : 'Start';
+    startPauseBtn.disabled = false;
+    nextBtn.disabled = false;
+    if (addBreakBtn) {
+      // Keep + Break available throughout an unfinished session, even before a block
+      // has started or while a break is in progress, so one-time breaks can be
+      // scheduled for later. Context-specific menu choices are disabled as needed.
+      addBreakBtn.hidden = currentBlock >= totalBlocks;
+      refreshBreakScheduleUi();
+      if (addBreakBtn.hidden) closeBreakMenu();
+    }
+    renderBlocks();
+    updateStatusIndicator();
+    updateWindowTitle();
+
+    const phaseHasAutomaticEnd = phase === 'break' ? !activeBreakCountUp : timerMode === 'countdown';
+    if (running && phaseHasAutomaticEnd && currentElapsed() >= currentPhaseMs()) {
+      if (phase === 'break') {
+        if (autoStartBreakToggle.checked) {
+          // Optional behavior: when enabled, a finished break rolls directly
+          // into the next work block and starts it automatically.
+          advancePhase(true, true);
+        } else if (!breakEndedWaiting) {
+          // Default behavior: the break keeps counting past zero so you can see
+          // exactly how long it ran over, but it never starts the next block.
+          breakEndedWaiting = true;
+        }
+      } else {
+        advancePhase(true);
+      }
+    }
+  }
+
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator) || !running || document.visibilityState !== 'visible') return;
+    try {
+      if (!wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; }, { once: true });
+      }
+    } catch {
+      wakeLock = null; // unsupported/denied is harmless; timer still works normally
+    }
+  }
+
+  async function releaseWakeLock() {
+    const lock = wakeLock;
+    wakeLock = null;
+    if (!lock) return;
+    try { await lock.release(); } catch { /* no-op */ }
+  }
+
+  // Safari/iOS may throttle or suspend intervals in the background. Because the
+  // timer state is timestamp-based, a single update on resume immediately catches
+  // the display up to real elapsed time instead of accumulating interval drift.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      update();
+      if (running) requestWakeLock();
+    }
+  });
+
+  window.addEventListener('pageshow', () => {
+    update();
+    if (running) requestWakeLock();
+  });
+
+  function start() {
+    if (running || currentBlock >= totalBlocks) return;
+    breakEndedWaiting = false;
+    beginActiveBlockIfNeeded();
+    running = true;
+    phaseStartedAt = Date.now();
+    intervalId = setInterval(update, 1000);
+    update();
+    requestWakeLock();
+    updateChangePreview();
+  }
+
+  function pause() {
+    if (!running) return;
+
+    elapsedInPhaseMs = currentElapsed();
+    running = false;
+    phaseStartedAt = null;
+
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    releaseWakeLock();
+
+    update();
+  }
+
+  function launchSessionConfetti() {
+    if (!timerCard || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    timerCard.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+    const count = 26;
+    const colors = [
+      'var(--accent)',
+      'color-mix(in srgb, var(--accent) 58%, white)',
+      'color-mix(in srgb, var(--accent) 68%, var(--text))',
+      'color-mix(in srgb, var(--text) 62%, transparent)'
+    ];
+
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'confetti-piece';
+
+      const angle = (Math.PI * 2 * i / count) + (Math.random() - 0.5) * 0.45;
+      const distance = 95 + Math.random() * 120;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance - 20;
+
+      piece.style.setProperty('--dx', `${dx.toFixed(1)}px`);
+      piece.style.setProperty('--dy', `${dy.toFixed(1)}px`);
+      piece.style.setProperty('--rot', `${Math.round((Math.random() * 540) - 270)}deg`);
+      piece.style.setProperty('--confetti-color', colors[i % colors.length]);
+      piece.style.animationDelay = `${Math.random() * 90}ms`;
+
+      timerCard.appendChild(piece);
+      piece.addEventListener('animationend', () => piece.remove(), { once: true });
+    }
+  }
+
+  function flashSessionComplete() {
+    if (!timerCard) return;
+    timerCard.classList.remove('session-complete-flash');
+    void timerCard.offsetWidth;
+    timerCard.classList.add('session-complete-flash');
+    launchSessionConfetti();
+  }
+
+  function resolveRequestedBreak(inputEl, label = 'Break') {
+    const raw = inputEl?.value?.trim() || '';
+    if (!raw) return { countUp: true, durationMs: 0 };
+    const parsed = parseBreakMinutesSecondsInput(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      if (breakSettingsError) breakSettingsError.textContent = `${label} length must be greater than 0 and use minutes or minutes:seconds.`;
+      return null;
+    }
+    if (breakSettingsError) breakSettingsError.textContent = '';
+    return { countUp: false, durationMs: parsed };
+  }
+
+  function closeBreakMenu() {
+    if (!breakMenu || !addBreakBtn) return;
+    breakMenu.hidden = true;
+    addBreakBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function refreshBreakScheduleUi() {
+    // If we are in a normal break after a completed block, that block is already
+    // behind us. During an ad-hoc break, however, the current block is only paused
+    // and can still be the reference point for future scheduling.
+    const firstSchedulableBlock = phase === 'break' && !resumeSameBlockAfterBreak
+      ? currentBlock + 1
+      : currentBlock;
+
+    if (breakNowBtn) {
+      // "Break now" is only meaningful while actively working inside a block.
+      breakNowBtn.disabled = !(phase === 'work' && Boolean(activeBlockRecord) && currentBlock < totalBlocks);
+    }
+
+    if (breakAfterBlockSelect) {
+      const previous = Number.parseInt(breakAfterBlockSelect.value, 10);
+      breakAfterBlockSelect.innerHTML = '';
+      // A break after the final block would occur after the session is already over,
+      // so offer only blocks that still have another work block after them.
+      const firstEligible = Math.max(firstSchedulableBlock, 0);
+      const lastEligible = Math.max(-1, totalBlocks - 2);
+      for (let i = firstEligible; i <= lastEligible; i++) {
+        const option = document.createElement('option');
+        option.value = String(i);
+        option.textContent = `Block ${i + 1}`;
+        breakAfterBlockSelect.appendChild(option);
+      }
+      const preferred = Number.isFinite(previous) && previous >= firstEligible && previous <= lastEligible
+        ? previous
+        : firstEligible;
+      if (breakAfterBlockSelect.options.length) breakAfterBlockSelect.value = String(preferred);
+      setBreakAfterBlockBtn.disabled = breakAfterBlockSelect.options.length === 0;
+    }
+
+    if (breakAfterCurrentBtn) {
+      // Before a block starts, "this block" means the upcoming current block.
+      // During a break there is no work block currently in progress, so use the
+      // explicit Block X picker instead.
+      breakAfterCurrentBtn.disabled = phase !== 'work' || currentBlock >= totalBlocks - 1;
+    }
+
+    const adHocBreakActive = phase === 'break' && resumeSameBlockAfterBreak;
+    breakNowRow?.classList.toggle('selected', adHocBreakActive);
+    const thisBlockBreakScheduled = phase === 'work' && scheduledOneOffBreakAfterBlock === currentBlock;
+    breakAfterCurrentRow?.classList.toggle('selected', thisBlockBreakScheduled);
+
+    if (breakScheduledChip && breakScheduledText) {
+      const valid = Number.isInteger(scheduledOneOffBreakAfterBlock)
+        && scheduledOneOffBreakAfterBlock >= firstSchedulableBlock
+        && scheduledOneOffBreakAfterBlock < totalBlocks - 1;
+      if (!valid) {
+        scheduledOneOffBreakAfterBlock = null;
+        scheduledOneOffBreakDurationMs = null;
+        scheduledOneOffBreakCountUp = false;
+        breakScheduledChip.hidden = true;
+      } else {
+        const durationText = scheduledOneOffBreakCountUp
+          ? ' · count up'
+          : (Number.isFinite(scheduledOneOffBreakDurationMs)
+            ? ` · ${formatMinutesSecondsInput(scheduledOneOffBreakDurationMs)} min`
+            : '');
+        breakScheduledText.textContent = `One-time break after block ${scheduledOneOffBreakAfterBlock + 1}${durationText}`;
+        breakScheduledChip.hidden = false;
+      }
+    }
+    updateBreakStatusSummary();
+  }
+
+  function scheduleOneOffBreakAfter(blockIndex, requestedDurationMs = undefined, durationSource = 'general') {
+    let resolvedDurationMs;
+    let customDurationMs = null;
+
+    let countUpBreak = false;
+    if (durationSource === 'block-picker') {
+      const raw = breakAfterBlockDurationInput?.value?.trim() || '';
+      if (raw) {
+        const parsed = parseBreakMinutesSecondsInput(raw);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          if (breakSettingsError) breakSettingsError.textContent = 'Custom block break must be greater than 0 and use minutes or minutes:seconds.';
+          return;
+        }
+        customDurationMs = parsed;
+        resolvedDurationMs = customDurationMs;
+      } else {
+        // A blank Block X duration means an intentionally untimed break.
+        // It counts upward until the user presses Done / Next.
+        countUpBreak = true;
+        resolvedDurationMs = 0;
+      }
+    } else {
+      if (requestedDurationMs === undefined) {
+        const request = resolveRequestedBreak(breakAfterCurrentDurationInput, 'Break after this block');
+        if (!request) return;
+        countUpBreak = request.countUp;
+        resolvedDurationMs = request.durationMs;
+        customDurationMs = request.countUp ? null : request.durationMs;
+      } else {
+        resolvedDurationMs = requestedDurationMs;
+        countUpBreak = requestedDurationMs === 0;
+        customDurationMs = countUpBreak ? null : requestedDurationMs;
+      }
+    }
+
+    if (!countUpBreak && (!Number.isFinite(resolvedDurationMs) || resolvedDurationMs <= 0)) {
+      closeBreakMenu();
+      return;
+    }
+    const firstSchedulableBlock = phase === 'break' && !resumeSameBlockAfterBreak
+      ? currentBlock + 1
+      : currentBlock;
+    if (!Number.isInteger(blockIndex) || blockIndex < firstSchedulableBlock || blockIndex >= totalBlocks - 1) return;
+    scheduledOneOffBreakAfterBlock = blockIndex;
+    scheduledOneOffBreakDurationMs = customDurationMs;
+    scheduledOneOffBreakCountUp = countUpBreak;
+    if (breakSettingsError) breakSettingsError.textContent = '';
+    errorMsg.textContent = '';
+    closeBreakMenu();
+    refreshBreakScheduleUi();
+  }
+
+  function startAdHocBreak(requestedDurationMs = undefined, countUp = false) {
+    if (phase !== 'work' || currentBlock >= totalBlocks || !activeBlockRecord) return;
+
+    let adHocDurationMs = requestedDurationMs;
+    if (requestedDurationMs === undefined) {
+      const request = resolveRequestedBreak(breakNowDurationInput, 'Break now');
+      if (!request) return;
+      countUp = request.countUp;
+      adHocDurationMs = request.durationMs;
+    }
+    if (!countUp && (!Number.isFinite(adHocDurationMs) || adHocDurationMs <= 0)) return;
+
+    errorMsg.textContent = '';
+    suspendedWorkElapsedMs = currentElapsed();
+    suspendedWorkDurationMs = activePhaseDurationMs;
+    resumeSameBlockAfterBreak = true;
+    activeBreakCountUp = countUp;
+    breakEndedWaiting = false;
+
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    running = true; // Ad-hoc breaks begin immediately.
+    phase = 'break';
+    elapsedInPhaseMs = 0;
+    activePhaseDurationMs = countUp ? 0 : adHocDurationMs;
+    phaseStartedAt = Date.now();
+    intervalId = setInterval(update, 1000);
+    requestWakeLock();
+    renderCurrentSession(true);
+    update();
+  }
+
+  function advancePhase(fromTimer = false, forceWorkStart = false) {
+    const wasRunning = running;
+    if (phase === 'break') countUpBreakAccumulatedMs += currentElapsed();
+    const wasBreakEndedWaiting = breakEndedWaiting;
+    breakEndedWaiting = false;
+
+    if (phase === 'work') finishActiveBlock();
+
+    if (intervalId) clearInterval(intervalId);
+
+    intervalId = null;
+    running = false;
+    phaseStartedAt = null;
+    elapsedInPhaseMs = 0;
+
+    const returningFromAdHocBreak = phase === 'break' && resumeSameBlockAfterBreak;
+
+    let enteredBreakDurationMs = null;
+    if (phase === 'work') {
+      const isLastBlock = currentBlock >= totalBlocks - 1;
+      const oneOffBreakDue = !isLastBlock && scheduledOneOffBreakAfterBlock === currentBlock;
+
+      if (oneOffBreakDue || (!isLastBlock && useBreaks)) {
+        if (oneOffBreakDue) {
+          activeBreakCountUp = scheduledOneOffBreakCountUp;
+          enteredBreakDurationMs = activeBreakCountUp
+            ? 0
+            : (Number.isFinite(scheduledOneOffBreakDurationMs) ? scheduledOneOffBreakDurationMs : breakMs);
+          scheduledOneOffBreakAfterBlock = null;
+          scheduledOneOffBreakDurationMs = null;
+          scheduledOneOffBreakCountUp = false;
+        } else {
+          activeBreakCountUp = recurringBreakUntimed;
+          enteredBreakDurationMs = activeBreakCountUp ? 0 : breakMs;
+        }
+        phase = 'break';
+      } else {
+        currentBlock = Math.min(totalBlocks, currentBlock + 1);
+        phase = 'work';
+      }
+    } else if (returningFromAdHocBreak) {
+      // Resume the same work block at exactly the worked-time position where
+      // the ad-hoc break began.
+      phase = 'work';
+      activeBreakCountUp = false;
+      elapsedInPhaseMs = suspendedWorkElapsedMs;
+      activePhaseDurationMs = suspendedWorkDurationMs ?? blockMs;
+      resumeSameBlockAfterBreak = false;
+      suspendedWorkElapsedMs = 0;
+      suspendedWorkDurationMs = null;
+    } else {
+      currentBlock = Math.min(totalBlocks, currentBlock + 1);
+      phase = 'work';
+      activeBreakCountUp = false;
+    }
+
+    // A newly entered normal phase uses the latest configuration. The phase
+    // that just ended kept the duration it started with. Ad-hoc resumes restore
+    // the original work phase duration above instead.
+    if (currentBlock < totalBlocks && !returningFromAdHocBreak) {
+      activePhaseDurationMs = phase === 'break' ? (enteredBreakDurationMs ?? breakMs) : blockMs;
+    }
+
+    if (currentBlock >= totalBlocks) {
+      completeActiveSession();
+      flashSessionComplete();
+    }
+
+    let shouldAutoStart = false;
+    if (currentBlock < totalBlocks) {
+      if (phase === 'break') {
+        // Breaks always begin as soon as the preceding work block ends or is advanced.
+        shouldAutoStart = true;
+      } else {
+        // Work blocks normally chain together. The separate break-ending toggle
+        // can force the next work block to start as soon as a break reaches zero.
+        shouldAutoStart = forceWorkStart || (autoStartToggle.checked && (fromTimer || wasRunning || wasBreakEndedWaiting));
+      }
+    }
+    if (shouldAutoStart) {
+      if (phase === 'work') beginActiveBlockIfNeeded();
+      running = true;
+      phaseStartedAt = Date.now();
+      intervalId = setInterval(update, 1000);
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    update();
+  }
+
+  function goBack() {
+    breakEndedWaiting = false;
+    if (phase === 'break') countUpBreakAccumulatedMs += currentElapsed();
+    if (intervalId) clearInterval(intervalId);
+
+    intervalId = null;
+    running = false;
+    releaseWakeLock();
+    phaseStartedAt = null;
+    elapsedInPhaseMs = 0;
+
+    if (phase === 'break' && resumeSameBlockAfterBreak) {
+      phase = 'work';
+      elapsedInPhaseMs = suspendedWorkElapsedMs;
+      activePhaseDurationMs = suspendedWorkDurationMs ?? blockMs;
+      resumeSameBlockAfterBreak = false;
+      suspendedWorkElapsedMs = 0;
+      suspendedWorkDurationMs = null;
+    } else if (phase === 'break') {
+      phase = 'work';
+      activePhaseDurationMs = blockMs;
+    } else if (currentBlock > 0) {
+      currentBlock -= 1;
+      if (useBreaks) {
+        phase = 'break';
+        activeBreakCountUp = recurringBreakUntimed;
+      }
+      activePhaseDurationMs = phase === 'break' ? (activeBreakCountUp ? 0 : breakMs) : blockMs;
+    }
+
+    update();
+  }
+
+  function reset() {
+    if (phase === 'break') countUpBreakAccumulatedMs += currentElapsed();
+    // A reset ends the current session, but should never throw away the work
+    // already recorded. Finalize the in-progress work block (if any) and move
+    // the partial session into Session log before clearing the timer state.
+    if (activeSession) {
+      if (phase === 'work' && activeBlockRecord) finishActiveBlock();
+      else if (phase === 'break' && resumeSameBlockAfterBreak && activeBlockRecord) finishSuspendedActiveBlock();
+      completeActiveSession();
+    }
+
+    activeSession = null;
+    activeBlockRecord = null;
+    renderCurrentSession(true);
+    lastCompletedWorkMs = 0;
+    if (timerCard) timerCard.classList.remove('session-complete-flash');
+    if (intervalId) clearInterval(intervalId);
+
+    intervalId = null;
+    running = false;
+    releaseWakeLock();
+    phaseStartedAt = null;
+    elapsedInPhaseMs = 0;
+    countUpBreakAccumulatedMs = 0;
+    currentBlock = 0;
+    phase = 'work';
+    breakEndedWaiting = false;
+    resumeSameBlockAfterBreak = false;
+    scheduledOneOffBreakAfterBlock = null;
+    scheduledOneOffBreakDurationMs = null;
+    scheduledOneOffBreakCountUp = false;
+    activeBreakCountUp = false;
+    suspendedWorkElapsedMs = 0;
+    suspendedWorkDurationMs = null;
+    activePhaseDurationMs = blockMs;
+    updateBreakStatusSummary();
+
+    update();
+  }
+
+  function syncBreakFieldVisibility() {
+    // Default break length stays visible even when scheduled between-block breaks are off,
+    // because one-time breaks can still use it.
+    if (breakField) breakField.style.display = 'grid';
+  }
+
+  function updateBreakStatusSummary() {
+    if (!breakStatusSummary) return;
+    const parts = [];
+    if (phase === 'break' && resumeSameBlockAfterBreak) {
+      const nowTime = activeBreakCountUp ? 'Untimed' : `${formatMinutesSecondsInput(activePhaseDurationMs)} min`;
+      parts.push(`${nowTime} break now`);
+    }
+    if (useBreaks) {
+      const recurringTime = recurringBreakUntimed ? 'Untimed' : `${formatMinutesSecondsInput(breakMs)} min`;
+      parts.push(`${recurringTime} break after every block`);
+    }
+    if (Number.isInteger(scheduledOneOffBreakAfterBlock) && scheduledOneOffBreakAfterBlock < totalBlocks - 1) {
+      const customTime = scheduledOneOffBreakCountUp
+        ? 'Untimed'
+        : (Number.isFinite(scheduledOneOffBreakDurationMs)
+          ? `${formatMinutesSecondsInput(scheduledOneOffBreakDurationMs)} min`
+          : `${formatMinutesSecondsInput(breakMs)} min`);
+      parts.push(`${customTime} break after block ${scheduledOneOffBreakAfterBlock + 1}`);
+    }
+    breakStatusSummary.textContent = parts.join(' · ');
+    breakStatusSummary.hidden = parts.length === 0;
+    if (setRecurringBreakBtn) {
+      setRecurringBreakBtn.textContent = useBreaks ? 'On' : 'Off';
+      setRecurringBreakBtn.setAttribute('aria-pressed', String(useBreaks));
+    }
+    if (recurringBreakInput && document.activeElement !== recurringBreakInput) recurringBreakInput.value = recurringBreakUntimed ? '' : formatMinutesSecondsInput(breakMs);
+  }
+
+  function applyBreakDurationFromInput() {
+    const parsed = parseBreakMinutesSecondsInput(breakInput.value);
+    if (!Number.isFinite(parsed)) {
+      if (breakSettingsError) breakSettingsError.textContent = 'Use minutes or minutes:seconds, from 0 to 240 minutes.';
+      breakInput.value = formatMinutesSecondsInput(breakMs);
+      return false;
+    }
+    if (breakSettingsError) breakSettingsError.textContent = '';
+    breakMs = parsed;
+    breakMinutes = breakMs / 60000;
+    breakInput.value = formatMinutesSecondsInput(breakMs);
+    if (recurringBreakInput) recurringBreakInput.value = formatMinutesSecondsInput(breakMs);
+    saveSettings();
+    updateBreakStatusSummary();
+    updateChangePreview();
+    update();
+    return true;
+  }
+
+  function syncSecondsOptionsVisibility() {
+    secondsOptions.classList.toggle('visible', secondsToggle.checked);
+  }
+
+
+  function formatDeltaMs(ms) {
+    const sign = ms > 0 ? '+' : ms < 0 ? '−' : '';
+    const abs = Math.abs(ms);
+    const totalSeconds = Math.round(abs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (seconds) return `${sign}${minutes}:${String(seconds).padStart(2, '0')}`;
+    return `${sign}${minutes} min`;
+  }
+
+  function updateChangePreview() {
+    if (!changePreview) return;
+
+    // Only show this helper once a session has actually begun.
+    if (!activeSession) {
+      changePreview.classList.remove('visible');
+      changePreview.innerHTML = '';
+      return;
+    }
+
+    const rows = [];
+    const newBlocks = Number.parseInt(blocksInput.value, 10);
+    const newBlockMs = parseMinutesSecondsInput(minutesInput.value);
+    const phaseInProgress = running || currentElapsed() > 0;
+
+    if (Number.isFinite(newBlocks) && newBlocks !== totalBlocks) {
+      const delta = newBlocks - totalBlocks;
+      const minimumBlocks = currentBlock + 1;
+      if (newBlocks < minimumBlocks) {
+        rows.push(`<div class="change-preview-row invalid"><strong>Blocks:</strong> ${totalBlocks} → ${newBlocks}. You are already on block ${minimumBlocks}, so this cannot be applied.</div>`);
+      } else if (delta > 0) {
+        rows.push(`<div class="change-preview-row"><strong>Blocks:</strong> ${totalBlocks} → ${newBlocks} (+${delta}). Adds ${delta} block${delta === 1 ? '' : 's'} to this session.</div>`);
+      } else {
+        const remove = Math.abs(delta);
+        const ending = newBlocks === minimumBlocks ? ' The session will end after the current block.' : '';
+        rows.push(`<div class="change-preview-row"><strong>Blocks:</strong> ${totalBlocks} → ${newBlocks} (−${remove}). Removes ${remove} block${remove === 1 ? '' : 's'} from the end of this session.${ending}</div>`);
+      }
+    }
+
+    if (timerMode === 'countdown' && Number.isFinite(newBlockMs) && newBlockMs !== blockMs) {
+      const when = phaseInProgress && phase === 'work' ? 'Current block stays unchanged; new length starts with the next block.' : 'New length applies to the next work block.';
+      rows.push(`<div class="change-preview-row"><strong>Block time:</strong> ${formatMinutesSecondsInput(blockMs)} → ${formatMinutesSecondsInput(newBlockMs)} (${formatDeltaMs(newBlockMs - blockMs)}). ${when}</div>`);
+    }
+
+    if (!rows.length) {
+      changePreview.classList.remove('visible');
+      changePreview.innerHTML = '';
+      return;
+    }
+
+    changePreview.innerHTML = rows.join('');
+    changePreview.classList.add('visible');
+  }
+
+  function applySettings() {
+    const newBlocks = Number.parseInt(blocksInput.value, 10);
+    const newBlockMs = parseMinutesSecondsInput(minutesInput.value);
+    if (!Number.isFinite(newBlocks) || newBlocks < 1 || newBlocks > 50) {
+      errorMsg.textContent = 'Blocks must be between 1 and 50.';
+      return;
+    }
+
+    if (!Number.isFinite(newBlockMs)) {
+      errorMsg.textContent = 'Block time must be 1–240 minutes, using minutes or minutes:seconds (for example 20 or 20:30).';
+      return;
+    }
+
+    // Never allow the new total to remove the block we are currently on.
+    const minimumBlocks = currentBlock + 1;
+    if (currentBlock < totalBlocks && newBlocks < minimumBlocks) {
+      errorMsg.textContent = `While on block ${minimumBlocks}, the session must have at least ${minimumBlocks} block${minimumBlocks === 1 ? '' : 's'}.`;
+      return;
+    }
+
+    const phaseInProgress = running || currentElapsed() > 0;
+
+    errorMsg.textContent = '';
+    totalBlocks = newBlocks;
+    if (scheduledOneOffBreakAfterBlock != null && scheduledOneOffBreakAfterBlock >= totalBlocks - 1) {
+      scheduledOneOffBreakAfterBlock = null;
+      scheduledOneOffBreakDurationMs = null;
+    }
+    blockMs = newBlockMs;
+    blockMinutes = blockMs / 60000;
+    minutesInput.value = formatMinutesSecondsInput(blockMs);
+
+    // If the current phase has not started yet, it can adopt the new setting.
+    // Otherwise its original duration is preserved and the new values begin
+    // with the next block/break.
+    if (!phaseInProgress) {
+      activePhaseDurationMs = phase === 'break' ? breakMs : blockMs;
+    }
+
+    if (activeSession) activeSession.totalBlocks = totalBlocks;
+
+    saveSettings();
+    update();
+    updateChangePreview();
+  }
+
+  if (timerModeSwitch) {
+    timerModeSwitch.addEventListener('click', event => {
+      const button = event.target.closest('.timer-mode-btn');
+      if (!button) return;
+      const nextMode = button.dataset.mode === 'countup' ? 'countup' : 'countdown';
+      if (nextMode === timerMode) return;
+
+      const sessionInProgress = Boolean(activeSession) || running || currentElapsed() > 0 || (currentBlock > 0 && currentBlock < totalBlocks);
+      if (sessionInProgress) {
+        errorMsg.textContent = 'Finish or reset the current session before switching timer mode.';
+        return;
+      }
+
+      if (currentBlock >= totalBlocks) reset();
+      timerMode = nextMode;
+      activePhaseDurationMs = blockMs;
+      errorMsg.textContent = '';
+      syncTimerModeUi();
+      saveSettings();
+      update();
+    });
+  }
+
+  startPauseBtn.addEventListener('click', () => running ? pause() : start());
+  addBreakBtn?.addEventListener('click', () => {
+    if (!breakMenu) return;
+    const willOpen = breakMenu.hidden;
+    breakMenu.hidden = !willOpen;
+    addBreakBtn.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) refreshBreakScheduleUi();
+  });
+  breakNowBtn?.addEventListener('click', () => {
+    const request = resolveRequestedBreak(breakNowDurationInput, 'Break now');
+    if (!request) return;
+    closeBreakMenu();
+    startAdHocBreak(request.durationMs, request.countUp);
+    refreshBreakScheduleUi();
+    updateBreakStatusSummary();
+  });
+  breakAfterCurrentBtn?.addEventListener('click', () => {
+    scheduleOneOffBreakAfter(currentBlock);
+    refreshBreakScheduleUi();
+    updateBreakStatusSummary();
+  });
+  setBreakAfterBlockBtn?.addEventListener('click', () => {
+    const target = Number.parseInt(breakAfterBlockSelect?.value ?? '', 10);
+    scheduleOneOffBreakAfter(target, undefined, 'block-picker');
+  });
+  cancelScheduledBreakBtn?.addEventListener('click', () => {
+    scheduledOneOffBreakAfterBlock = null;
+    scheduledOneOffBreakDurationMs = null;
+    scheduledOneOffBreakCountUp = false;
+    refreshBreakScheduleUi();
+  });
+  document.addEventListener('click', event => {
+    if (!breakMenu || breakMenu.hidden) return;
+    if (event.target === addBreakBtn || breakMenu.contains(event.target)) return;
+    closeBreakMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeBreakMenu();
+  });
+  nextBtn.addEventListener('click', advancePhase);
+  backBtn.addEventListener('click', goBack);
+  let resetConfirmPending = false;
+  let resetConfirmTimeout = null;
+
+  function clearResetConfirmation() {
+    resetConfirmPending = false;
+    if (resetConfirmTimeout) clearTimeout(resetConfirmTimeout);
+    resetConfirmTimeout = null;
+    resetBtn.textContent = 'Reset';
+  }
+
+  resetBtn.addEventListener('click', () => {
+    if (!running) {
+      clearResetConfirmation();
+      reset();
+      return;
+    }
+
+    if (!resetConfirmPending) {
+      resetConfirmPending = true;
+      resetBtn.textContent = 'Confirm reset';
+      resetConfirmTimeout = setTimeout(clearResetConfirmation, 2500);
+      return;
+    }
+
+    clearResetConfirmation();
+    reset();
+  });
+  applyBtn.addEventListener('click', applySettings);
+
+  // Show the mid-session change preview as soon as the user edits a setting.
+  blocksInput.addEventListener('input', updateChangePreview);
+  minutesInput.addEventListener('input', updateChangePreview);
+  breakInput.addEventListener('input', () => {
+    if (breakSettingsError) breakSettingsError.textContent = '';
+  });
+
+  function applyRecurringBreakDuration() {
+    const raw = recurringBreakInput?.value?.trim() || '';
+    if (!raw) {
+      recurringBreakUntimed = true;
+      if (breakSettingsError) breakSettingsError.textContent = '';
+      if (recurringBreakInput) recurringBreakInput.value = '';
+      saveSettings();
+      updateBreakStatusSummary();
+      update();
+      return true;
+    }
+    const parsed = parseBreakMinutesSecondsInput(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      if (breakSettingsError) breakSettingsError.textContent = 'Break length must be greater than 0 and use minutes or minutes:seconds, or leave it blank for an untimed break.';
+      return false;
+    }
+    if (breakSettingsError) breakSettingsError.textContent = '';
+    recurringBreakUntimed = false;
+    breakMs = parsed;
+    breakMinutes = breakMs / 60000;
+    breakInput.value = formatMinutesSecondsInput(breakMs);
+    if (recurringBreakInput) recurringBreakInput.value = formatMinutesSecondsInput(breakMs);
+    saveSettings();
+    updateBreakStatusSummary();
+    update();
+    return true;
+  }
+
+  function nudgeRecurringBreak(deltaMs) {
+    const raw = recurringBreakInput?.value?.trim();
+    const parsed = parseBreakMinutesSecondsInput(raw);
+    const base = Number.isFinite(parsed) && parsed > 0 ? parsed : breakMs;
+    recurringBreakUntimed = false;
+    const next = Math.min(240 * 60 * 1000, Math.max(1000, base + deltaMs));
+    if (recurringBreakInput) recurringBreakInput.value = formatMinutesSecondsInput(next);
+    applyRecurringBreakDuration();
+  }
+
+  setRecurringBreakBtn?.addEventListener('click', () => {
+    if (!useBreaks && !applyRecurringBreakDuration()) return;
+    useBreaks = !useBreaks;
+    saveSettings();
+    updateBreakStatusSummary();
+    update();
+  });
+  breakAfterBlockDurationInput?.addEventListener('input', () => {
+    if (breakSettingsError) breakSettingsError.textContent = '';
+  });
+  breakNowDurationInput?.addEventListener('input', () => {
+    if (breakSettingsError) breakSettingsError.textContent = '';
+  });
+  breakAfterCurrentDurationInput?.addEventListener('input', () => {
+    if (breakSettingsError) breakSettingsError.textContent = '';
+  });
+  recurringBreakInput?.addEventListener('input', () => {
+    if (breakSettingsError) breakSettingsError.textContent = '';
+  });
+  recurringBreakInput?.addEventListener('change', applyRecurringBreakDuration);
+  recurringBreakInput?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyRecurringBreakDuration();
+      recurringBreakInput.blur();
+    }
+  });
+  decreaseRecurringBreakBtn?.addEventListener('click', () => nudgeRecurringBreak(-60 * 1000));
+  increaseRecurringBreakBtn?.addEventListener('click', () => nudgeRecurringBreak(60 * 1000));
+  breakInput.addEventListener('change', applyBreakDurationFromInput);
+  breakInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyBreakDurationFromInput();
+      breakInput.blur();
+    }
+  });
+  autoStartToggle.addEventListener('change', saveSettings);
+  showTotalTimeToggle?.addEventListener('change', () => { saveSettings(); update(); });
+  showBreakTimeToggle?.addEventListener('change', () => { saveSettings(); update(); });
+  autoStartBreakToggle.addEventListener('change', () => {
+    saveSettings();
+    updateBreakStatusSummary();
+  });
+  showCurrentSessionToggle.addEventListener('change', () => {
+    saveSettings();
+    renderCurrentSession(true);
+  });
+  secondsToggle.addEventListener('change', () => {
+    syncSecondsOptionsVisibility();
+    saveSettings();
+    update();
+  });
+  secondsTitleToggle.addEventListener('change', () => { saveSettings(); update(); });
+  secondsTotalToggle.addEventListener('change', () => { saveSettings(); update(); });
+  secondsBlockToggle.addEventListener('change', () => { saveSettings(); update(); });
+  secondsCurrentSessionToggle.addEventListener('change', () => { saveSettings(); renderCurrentSession(true); update(); });
+
+  document.addEventListener('keydown', e => {
+    const tag = e.target?.tagName?.toLowerCase();
+
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      running ? pause() : start();
+    }
+
+    if (e.code === 'Enter') {
+      e.preventDefault();
+      advancePhase();
+    }
+  });
+
+  // iOS Safari changes the visual viewport when the keyboard/address bar moves.
+  // Re-rendering on those changes avoids stale sizing without altering timer state.
+  if (window.visualViewport) {
+    let viewportRaf = null;
+    const onViewportChange = () => {
+      if (viewportRaf) cancelAnimationFrame(viewportRaf);
+      viewportRaf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--visual-viewport-height', `${window.visualViewport.height}px`);
+      });
+    };
+    window.visualViewport.addEventListener('resize', onViewportChange, { passive: true });
+    window.visualViewport.addEventListener('scroll', onViewportChange, { passive: true });
+    onViewportChange();
+  }
+
+  syncBreakFieldVisibility();
+  updateBreakStatusSummary();
+  syncSecondsOptionsVisibility();
+  syncTimerModeUi();
+  renderCurrentSession(true);
+  renderSessionLogs();
+  update();
+
+})();
+</script>
+</body>
+</html>
